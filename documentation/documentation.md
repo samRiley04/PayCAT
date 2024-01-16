@@ -83,7 +83,7 @@ Returns a list of all KEYS (filenames) for payslips in the local database.
 
 This is called when the user clicks an entry in the side-bar UI.
 
-`GET api/PDFData/<file name.pdf>`
+`GET /api/PDFData/<file name.pdf>`
 
 **Responses**
 
@@ -115,5 +115,13 @@ Returns the dictionary of data for that key (payslip) in the local database.
 
 ### DELETE a single registered payslip
 
-This is called when the user
+This is called when the user clicks the delete button next to a paylsip entry in the sidebar.
+
+`DELETE /api/PDFData/<file name.pdf>`
+
+**Responses**
+
+- `204 NO CONTENT` if deleted successfully.
+- `404 NOT FOUND` if no file by that name was found
+- `415 UNSUPPORTED MEDIA TYPE` if not requesting a .pdf name.
 

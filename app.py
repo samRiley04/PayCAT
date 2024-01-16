@@ -1,13 +1,18 @@
+from tkinter import Tk     
+from tkinter import filedialog as fd     
+from tkinter.filedialog import askopenfilename
+
 import flask
 from flask import Flask, redirect, url_for, render_template, flash, request, session, send_from_directory, current_app
 from flask_restful import Resource, Api, reqparse, inputs
+
 
 import logging
 import webbrowser
 import requests
 import shelve
 
-#Mine
+#My files.
 import PayslipFunctions as pFx
 
 # Initialise
@@ -26,6 +31,15 @@ def home():
 
 class PDFDataList(Resource):
 	def get(self):
+
+		filename = ""
+		filename = askopenfilename()
+		root.withdraw()
+		if filename == "":
+			root.mainloop()
+		else:
+			root.destroy()
+
 		# Get rid of this when shelf established. Its wrong.
 		#return pFx.ingestPDF('test2.pdf'), 200
 		keysList = []
@@ -52,6 +66,12 @@ class PDFDataList(Resource):
 				"data":None,
 				"message":"Incorrect file type - pdfs only!"
 			}, 415
+
+		jeff = selectFile()
+		print(jeff)
+
+		return 1, 200
+
 		# Try to find the file.
 		try:
 			newPsDict = pFx.ingestPDF(parsed_args["pdfName"])
@@ -86,7 +106,7 @@ class PDFDataList(Resource):
 
 	#pdfNameShort is the filename minus all directories it's in.
 	def delete(self, pdfNameShort):
-		#If in shelf, delte it.
+		#If in shelf, delete it.
 		return 200
 
 
@@ -100,10 +120,6 @@ class PDFData(Resource):
 				"data":None,
 				"message":"Incorrect file type - pdfs only!"
 			}, 415
-		
-		#TO REMOVE:
-		return pdfNameShort, 200
-		"""
 		toReturn = {}
 		# Retrieve that entry from the shelf if it exists.
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
@@ -118,7 +134,25 @@ class PDFData(Resource):
 			"data":toReturn,
 			"message":"Success"
 		}, 200
-		"""
+
+	def delete(self, pdfNameShort):
+		if not pdfNameShort[-4:] == ".pdf":
+			return {
+				"data":None,
+				"message":"Incorrect file type - pdfs only!"
+			}, 415
+		with shelve.open(SHELF_NAME, writeback=True) as shlf:
+			if pdfNameShort in shlf:
+				shlf.pop(pdfNameShort)
+				return {
+					"data":None,
+					"message":"Success"
+				}, 204
+			else:
+				return {
+					"data":None,
+					"message":"Could not find file by that name."
+				}, 404
 
 api.add_resource(PDFData, "/api/PDFData/<string:pdfNameShort>")
 
@@ -128,6 +162,7 @@ api.add_resource(PDFData, "/api/PDFData/<string:pdfNameShort>")
 
 def start():
 	if __name__ == "__main__":
+		root = Tk()
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
 #webbrowser.open('http://localhost:8000', new=1, autoraise=True)

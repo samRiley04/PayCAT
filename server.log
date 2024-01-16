@@ -2390,3 +2390,397 @@
 01/16/2024 02:13:07PM  * Debugger is active!
 01/16/2024 02:13:07PM  * Debugger PIN: 834-263-776
 01/16/2024 02:13:10PM 127.0.0.1 - - [16/Jan/2024 14:13:10] "GET /api/PDFData HTTP/1.1" 200 -
+01/16/2024 02:18:02PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:18:02PM  * Restarting with stat
+01/16/2024 02:18:03PM  * Debugger is active!
+01/16/2024 02:18:03PM  * Debugger PIN: 834-263-776
+01/16/2024 02:18:18PM 127.0.0.1 - - [16/Jan/2024 14:18:18] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:30PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:18:30PM  * Restarting with stat
+01/16/2024 02:18:31PM  * Debugger is active!
+01/16/2024 02:18:31PM  * Debugger PIN: 834-263-776
+01/16/2024 02:18:33PM 127.0.0.1 - - [16/Jan/2024 14:18:33] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:38PM 127.0.0.1 - - [16/Jan/2024 14:18:38] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:41PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:18:41PM  * Restarting with stat
+01/16/2024 02:18:42PM  * Debugger is active!
+01/16/2024 02:18:42PM  * Debugger PIN: 834-263-776
+01/16/2024 02:18:45PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:18:45PM  * Restarting with stat
+01/16/2024 02:18:46PM  * Debugger is active!
+01/16/2024 02:18:46PM  * Debugger PIN: 834-263-776
+01/16/2024 02:18:47PM 127.0.0.1 - - [16/Jan/2024 14:18:47] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:52PM 127.0.0.1 - - [16/Jan/2024 14:18:52] "[33mGET /api/PDFData/test3.pdf HTTP/1.1[0m" 404 -
+01/16/2024 02:18:54PM 127.0.0.1 - - [16/Jan/2024 14:18:54] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:56PM 127.0.0.1 - - [16/Jan/2024 14:18:56] "[31m[1mGET /api/PDFData/test2.pd HTTP/1.1[0m" 415 -
+01/16/2024 02:18:57PM 127.0.0.1 - - [16/Jan/2024 14:18:57] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:18:59PM 127.0.0.1 - - [16/Jan/2024 14:18:59] "[31m[1mGET /api/PDFData/test2.jpg HTTP/1.1[0m" 415 -
+01/16/2024 02:19:01PM 127.0.0.1 - - [16/Jan/2024 14:19:01] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 02:19:33PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:19:33PM  * Restarting with stat
+01/16/2024 02:19:33PM  * Debugger is active!
+01/16/2024 02:19:33PM  * Debugger PIN: 834-263-776
+01/16/2024 02:26:23PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 02:26:23PM  * Restarting with stat
+01/16/2024 02:26:24PM  * Debugger is active!
+01/16/2024 02:26:24PM  * Debugger PIN: 834-263-776
+01/16/2024 02:29:06PM 127.0.0.1 - - [16/Jan/2024 14:29:06] "[35m[1mDELETE /api/PDFData/test2.pdf HTTP/1.1[0m" 204 -
+01/16/2024 02:29:14PM 127.0.0.1 - - [16/Jan/2024 14:29:14] "[33mGET /api/PDFData/test2.pdf HTTP/1.1[0m" 404 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET / HTTP/1.1" 200 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:01:29PM 127.0.0.1 - - [16/Jan/2024 16:01:29] "GET /api/PDFData HTTP/1.1" 200 -
+01/16/2024 04:01:31PM 127.0.0.1 - - [16/Jan/2024 16:01:31] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+01/16/2024 04:01:31PM 127.0.0.1 - - [16/Jan/2024 16:01:31] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:01:31PM 127.0.0.1 - - [16/Jan/2024 16:01:31] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:02:19PM 127.0.0.1 - - [16/Jan/2024 16:02:19] "GET / HTTP/1.1" 200 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:02:20PM 127.0.0.1 - - [16/Jan/2024 16:02:20] "GET /api/PDFData HTTP/1.1" 200 -
+01/16/2024 04:02:42PM 127.0.0.1 - - [16/Jan/2024 16:02:42] "GET / HTTP/1.1" 200 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "[33mGET /api/PDFData/test2.pdf HTTP/1.1[0m" 404 -
+01/16/2024 04:02:44PM 127.0.0.1 - - [16/Jan/2024 16:02:44] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:02:54PM 127.0.0.1 - - [16/Jan/2024 16:02:54] "[35m[1mPOST /api/PDFData HTTP/1.1[0m" 201 -
+01/16/2024 04:03:05PM 127.0.0.1 - - [16/Jan/2024 16:03:05] "GET / HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:03:06PM 127.0.0.1 - - [16/Jan/2024 16:03:06] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:04:03PM 127.0.0.1 - - [16/Jan/2024 16:04:03] "GET / HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:04:05PM 127.0.0.1 - - [16/Jan/2024 16:04:05] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:06:15PM 127.0.0.1 - - [16/Jan/2024 16:06:15] "GET / HTTP/1.1" 200 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:06:16PM 127.0.0.1 - - [16/Jan/2024 16:06:16] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET / HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css.map HTTP/1.1[0m" 304 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:06:35PM 127.0.0.1 - - [16/Jan/2024 16:06:35] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 304 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "GET / HTTP/1.1" 200 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "[36mGET /static/jquery.min.js HTTP/1.1[0m" 304 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "[36mGET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "[36mGET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "[36mGET /static/custom.js HTTP/1.1[0m" 304 -
+01/16/2024 04:06:43PM 127.0.0.1 - - [16/Jan/2024 16:06:43] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:11:08PM 127.0.0.1 - - [16/Jan/2024 16:11:08] "GET / HTTP/1.1" 200 -
+01/16/2024 04:11:09PM 127.0.0.1 - - [16/Jan/2024 16:11:09] "GET /static/bootstrap-5.3.2-dist/css/bootstrap.min.css HTTP/1.1" 200 -
+01/16/2024 04:11:09PM 127.0.0.1 - - [16/Jan/2024 16:11:09] "GET /static/jquery.min.js HTTP/1.1" 200 -
+01/16/2024 04:11:09PM 127.0.0.1 - - [16/Jan/2024 16:11:09] "GET /static/custom.js HTTP/1.1" 200 -
+01/16/2024 04:11:09PM 127.0.0.1 - - [16/Jan/2024 16:11:09] "GET /static/bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+01/16/2024 04:11:09PM 127.0.0.1 - - [16/Jan/2024 16:11:09] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:32:34PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:32:34PM  * Restarting with stat
+01/16/2024 04:32:35PM  * Debugger is active!
+01/16/2024 04:32:35PM  * Debugger PIN: 834-263-776
+01/16/2024 04:34:39PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:34:39PM  * Restarting with stat
+01/16/2024 04:34:40PM  * Debugger is active!
+01/16/2024 04:34:40PM  * Debugger PIN: 834-263-776
+01/16/2024 04:35:10PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:35:10PM  * Restarting with stat
+01/16/2024 04:35:11PM  * Debugger is active!
+01/16/2024 04:35:11PM  * Debugger PIN: 834-263-776
+01/16/2024 04:35:21PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:35:21PM  * Restarting with stat
+01/16/2024 04:35:21PM  * Debugger is active!
+01/16/2024 04:35:21PM  * Debugger PIN: 834-263-776
+01/16/2024 04:36:01PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:36:01PM  * Restarting with stat
+01/16/2024 04:36:02PM  * Debugger is active!
+01/16/2024 04:36:02PM  * Debugger PIN: 834-263-776
+01/16/2024 04:37:50PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:37:50PM  * Restarting with stat
+01/16/2024 04:37:51PM  * Debugger is active!
+01/16/2024 04:37:51PM  * Debugger PIN: 834-263-776
+01/16/2024 04:37:54PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:37:55PM  * Restarting with stat
+01/16/2024 04:37:55PM  * Debugger is active!
+01/16/2024 04:37:55PM  * Debugger PIN: 834-263-776
+01/16/2024 04:37:57PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:37:57PM  * Restarting with stat
+01/16/2024 04:37:58PM  * Debugger is active!
+01/16/2024 04:37:58PM  * Debugger PIN: 834-263-776
+01/16/2024 04:38:43PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:38:43PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:38:43PM  * Restarting with stat
+01/16/2024 04:38:43PM  * Debugger is active!
+01/16/2024 04:38:43PM  * Debugger PIN: 834-263-776
+01/16/2024 04:38:56PM 127.0.0.1 - - [16/Jan/2024 16:38:56] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 04:40:14PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:40:14PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:40:14PM  * Restarting with stat
+01/16/2024 04:40:15PM  * Debugger is active!
+01/16/2024 04:40:15PM  * Debugger PIN: 834-263-776
+01/16/2024 04:40:25PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:40:25PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:40:25PM  * Restarting with stat
+01/16/2024 04:40:25PM  * Debugger is active!
+01/16/2024 04:40:25PM  * Debugger PIN: 834-263-776
+01/16/2024 04:40:30PM 127.0.0.1 - - [16/Jan/2024 16:40:30] "[35m[1mPOST /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 04:41:18PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:41:18PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:41:18PM  * Restarting with stat
+01/16/2024 04:41:19PM  * Debugger is active!
+01/16/2024 04:41:19PM  * Debugger PIN: 834-263-776
+01/16/2024 04:41:29PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:41:29PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:41:29PM  * Restarting with stat
+01/16/2024 04:41:29PM  * Debugger is active!
+01/16/2024 04:41:29PM  * Debugger PIN: 834-263-776
+01/16/2024 04:42:08PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:42:08PM  * Restarting with stat
+01/16/2024 04:42:09PM  * Debugger is active!
+01/16/2024 04:42:09PM  * Debugger PIN: 834-263-776
+01/16/2024 04:42:23PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:42:23PM  * Restarting with stat
+01/16/2024 04:42:24PM  * Debugger is active!
+01/16/2024 04:42:24PM  * Debugger PIN: 834-263-776
+01/16/2024 04:42:45PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:42:45PM  * Restarting with stat
+01/16/2024 04:42:47PM  * Debugger is active!
+01/16/2024 04:42:47PM  * Debugger PIN: 834-263-776
+01/16/2024 04:43:23PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:43:23PM  * Restarting with stat
+01/16/2024 04:43:24PM  * Debugger is active!
+01/16/2024 04:43:24PM  * Debugger PIN: 834-263-776
+01/16/2024 04:43:27PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:43:27PM  * Restarting with stat
+01/16/2024 04:43:32PM  * Debugger is active!
+01/16/2024 04:43:32PM  * Debugger PIN: 834-263-776
+01/16/2024 04:44:05PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:44:06PM  * Restarting with stat
+01/16/2024 04:44:06PM  * Debugger is active!
+01/16/2024 04:44:06PM  * Debugger PIN: 834-263-776
+01/16/2024 04:44:09PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:44:09PM  * Restarting with stat
+01/16/2024 04:44:09PM  * Debugger is active!
+01/16/2024 04:44:09PM  * Debugger PIN: 834-263-776
+01/16/2024 04:44:57PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:44:57PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:44:57PM  * Restarting with stat
+01/16/2024 04:44:57PM  * Debugger is active!
+01/16/2024 04:44:57PM  * Debugger PIN: 834-263-776
+01/16/2024 04:45:05PM 127.0.0.1 - - [16/Jan/2024 16:45:05] "[35m[1mPOST /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 04:46:09PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 04:46:09PM  * Restarting with stat
+01/16/2024 04:46:10PM  * Debugger is active!
+01/16/2024 04:46:10PM  * Debugger PIN: 834-263-776
+01/16/2024 04:46:37PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:46:37PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:46:37PM  * Restarting with stat
+01/16/2024 04:46:40PM  * Debugger is active!
+01/16/2024 04:46:40PM  * Debugger PIN: 834-263-776
+01/16/2024 04:48:37PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:48:37PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:48:37PM  * Restarting with stat
+01/16/2024 04:48:37PM  * Debugger is active!
+01/16/2024 04:48:37PM  * Debugger PIN: 834-263-776
+01/16/2024 04:49:12PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 04:49:12PM [33mPress CTRL+C to quit[0m
+01/16/2024 04:49:12PM  * Restarting with stat
+01/16/2024 04:49:12PM  * Debugger is active!
+01/16/2024 04:49:12PM  * Debugger PIN: 834-263-776
+01/16/2024 04:49:21PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:49:21PM  * Restarting with stat
+01/16/2024 04:49:21PM  * Debugger is active!
+01/16/2024 04:49:21PM  * Debugger PIN: 834-263-776
+01/16/2024 04:50:18PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:50:18PM  * Restarting with stat
+01/16/2024 04:50:19PM  * Debugger is active!
+01/16/2024 04:50:19PM  * Debugger PIN: 834-263-776
+01/16/2024 04:50:55PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:50:55PM  * Restarting with stat
+01/16/2024 04:50:55PM  * Debugger is active!
+01/16/2024 04:50:55PM  * Debugger PIN: 834-263-776
+01/16/2024 04:51:21PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:51:22PM  * Restarting with stat
+01/16/2024 04:51:22PM  * Debugger is active!
+01/16/2024 04:51:22PM  * Debugger PIN: 834-263-776
+01/16/2024 04:56:34PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:56:34PM  * Restarting with stat
+01/16/2024 04:56:34PM  * Debugger is active!
+01/16/2024 04:56:34PM  * Debugger PIN: 834-263-776
+01/16/2024 04:56:44PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:56:44PM  * Restarting with stat
+01/16/2024 04:56:45PM  * Debugger is active!
+01/16/2024 04:56:45PM  * Debugger PIN: 834-263-776
+01/16/2024 04:57:18PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:57:18PM  * Restarting with stat
+01/16/2024 04:57:18PM  * Debugger is active!
+01/16/2024 04:57:18PM  * Debugger PIN: 834-263-776
+01/16/2024 04:57:38PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:57:38PM  * Restarting with stat
+01/16/2024 04:57:38PM  * Debugger is active!
+01/16/2024 04:57:38PM  * Debugger PIN: 834-263-776
+01/16/2024 04:57:57PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:57:57PM  * Restarting with stat
+01/16/2024 04:57:58PM  * Debugger is active!
+01/16/2024 04:57:58PM  * Debugger PIN: 834-263-776
+01/16/2024 04:58:43PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:58:43PM  * Restarting with stat
+01/16/2024 04:58:44PM  * Debugger is active!
+01/16/2024 04:58:44PM  * Debugger PIN: 834-263-776
+01/16/2024 04:59:02PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:59:02PM  * Restarting with stat
+01/16/2024 04:59:03PM  * Debugger is active!
+01/16/2024 04:59:03PM  * Debugger PIN: 834-263-776
+01/16/2024 04:59:04PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/test.py', reloading
+01/16/2024 04:59:04PM  * Restarting with stat
+01/16/2024 04:59:04PM  * Debugger is active!
+01/16/2024 04:59:04PM  * Debugger PIN: 834-263-776
+01/16/2024 05:00:12PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:00:12PM  * Restarting with stat
+01/16/2024 05:00:16PM  * Debugger is active!
+01/16/2024 05:00:16PM  * Debugger PIN: 834-263-776
+01/16/2024 05:00:23PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:00:23PM  * Restarting with stat
+01/16/2024 05:00:23PM  * Debugger is active!
+01/16/2024 05:00:23PM  * Debugger PIN: 834-263-776
+01/16/2024 05:00:30PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:00:30PM  * Restarting with stat
+01/16/2024 05:00:30PM  * Debugger is active!
+01/16/2024 05:00:30PM  * Debugger PIN: 834-263-776
+01/16/2024 05:00:35PM 127.0.0.1 - - [16/Jan/2024 17:00:35] "GET /api/PDFData/test2.pdf HTTP/1.1" 200 -
+01/16/2024 05:01:44PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:01:44PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:01:44PM  * Restarting with stat
+01/16/2024 05:01:44PM  * Debugger is active!
+01/16/2024 05:01:44PM  * Debugger PIN: 834-263-776
+01/16/2024 05:04:39PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:04:39PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:04:39PM  * Restarting with stat
+01/16/2024 05:04:39PM  * Debugger is active!
+01/16/2024 05:04:39PM  * Debugger PIN: 834-263-776
+01/16/2024 05:11:17PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:11:17PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:11:17PM  * Restarting with stat
+01/16/2024 05:11:18PM  * Debugger is active!
+01/16/2024 05:11:18PM  * Debugger PIN: 834-263-776
+01/16/2024 05:11:21PM 127.0.0.1 - - [16/Jan/2024 17:11:21] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 05:11:33PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:11:33PM  * Restarting with stat
+01/16/2024 05:11:34PM  * Debugger is active!
+01/16/2024 05:11:34PM  * Debugger PIN: 834-263-776
+01/16/2024 05:11:37PM 127.0.0.1 - - [16/Jan/2024 17:11:37] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 05:11:49PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:11:49PM  * Restarting with stat
+01/16/2024 05:12:18PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:12:18PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:12:18PM  * Restarting with stat
+01/16/2024 05:12:19PM  * Debugger is active!
+01/16/2024 05:12:19PM  * Debugger PIN: 834-263-776
+01/16/2024 05:12:20PM 127.0.0.1 - - [16/Jan/2024 17:12:20] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 05:12:28PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:12:28PM  * Restarting with stat
+01/16/2024 05:12:28PM  * Debugger is active!
+01/16/2024 05:12:28PM  * Debugger PIN: 834-263-776
+01/16/2024 05:12:47PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:12:47PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:12:47PM  * Restarting with stat
+01/16/2024 05:12:47PM  * Debugger is active!
+01/16/2024 05:12:48PM  * Debugger PIN: 834-263-776
+01/16/2024 05:12:53PM 127.0.0.1 - - [16/Jan/2024 17:12:53] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 05:13:21PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:13:21PM  * Restarting with stat
+01/16/2024 05:13:22PM  * Debugger is active!
+01/16/2024 05:13:22PM  * Debugger PIN: 834-263-776
+01/16/2024 05:13:25PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:13:25PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:13:25PM  * Restarting with stat
+01/16/2024 05:13:26PM  * Debugger is active!
+01/16/2024 05:13:26PM  * Debugger PIN: 834-263-776
+01/16/2024 05:13:29PM 127.0.0.1 - - [16/Jan/2024 17:13:29] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -
+01/16/2024 05:14:49PM  * Detected change in '/Users/sam/Documents/GitHub/PayCAT/app.py', reloading
+01/16/2024 05:14:49PM  * Restarting with stat
+01/16/2024 05:14:50PM  * Debugger is active!
+01/16/2024 05:14:50PM  * Debugger PIN: 834-263-776
+01/16/2024 05:14:53PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:14:53PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:14:53PM  * Restarting with stat
+01/16/2024 05:14:54PM  * Debugger is active!
+01/16/2024 05:14:54PM  * Debugger PIN: 834-263-776
+01/16/2024 05:15:19PM [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.136:8000
+01/16/2024 05:15:19PM [33mPress CTRL+C to quit[0m
+01/16/2024 05:15:19PM  * Restarting with stat
+01/16/2024 05:15:20PM  * Debugger is active!
+01/16/2024 05:15:20PM  * Debugger PIN: 834-263-776
+01/16/2024 05:15:23PM 127.0.0.1 - - [16/Jan/2024 17:15:23] "[35m[1mGET /api/PDFData HTTP/1.1[0m" 500 -

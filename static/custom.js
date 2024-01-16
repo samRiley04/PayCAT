@@ -21,14 +21,14 @@
 
 function importPDFData() {
   $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData",
+      url: "http://localhost:8000/api/PDFData/test2.pdf",
       type: 'GET',
       timeout: 4000,
       headers: {
         'Access-Control-Allow-Origin': '*'
       }
     })).done(function (data) {
-      for (date in data) {
+      for (date in data["data"]) {
         //Clone a new card, rename it's ID as the date, and remove hidden.
         $('#card-container').append($('#item-template').clone().removeAttr('hidden').attr("id", date+"-card"))
         //Uniqify the collapse IDs (generic)
@@ -38,8 +38,8 @@ function importPDFData() {
         let sumAmount = 0
         $('#'+date+"-card").find("#item-date").text(date)       
         //Fill each item in a date entry
-        for (let i = 0; i < data[date].length; i++) {
-          let entry = data[date][i]
+        for (let i = 0; i < data["data"][date].length; i++) {
+          let entry = data["data"][date][i]
           sumAmount += parseFloat(entry["amount"])
           $('#'+date+"-card").find("#item-entry-container").append($('#'+date+"-card").find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
           //Only if they're defined, fill units/rate
@@ -79,7 +79,7 @@ function updateSidebarList() {
 
 function deletePDFEntry(pdfNameShort) {
   //TODO:
-  //AJAX call local DB - DELETE /api/PDFData
+  //AJAX call local DB - DELETE /api/PDFData/<file name.pdf>
 }
 
 //When no payslip entry is selected, this is the data shown.
