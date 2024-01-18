@@ -1,10 +1,8 @@
 import PyPDF2
 import yaml
-import sys
 
 #Alerts - in the form [priority (HI/MED/LO), title, body]
 alerts = []
-
 
 #Descriptions dict - to aid with payslip ingestion. List of known possible descriptions.
 descShortlist = [
@@ -17,7 +15,8 @@ descShortlist = [
 	"PENALTIES AT 75%",
 	"OVERTIME @ 1.5",
 	"MEAL - BREAKFAST MED PRAC",
-	"MEAL - DINNER MED PRACT"
+	"MEAL - DINNER MED PRACT",
+	"ANNUAL LEAVE"
 ]
 
 def ingestPDF(fileName):
@@ -27,6 +26,7 @@ def ingestPDF(fileName):
 		pdfReader = PyPDF2.PdfReader(pdf)
 		pageOfInterest = pdfReader.pages[1].extract_text().split('\n')
 		LINELIMITER = 0
+		# PAGE TWO ----
 		for line in pageOfInterest:
 			#If this line starts with a number (the only lines we are interested in do)
 			if line[0][0].isnumeric():
@@ -98,10 +98,38 @@ def ingestPDF(fileName):
 									"units":units,
 									"rate":rate,
 									"amount":amount})
-			
+		
+		# NOW grab all the random info from page 1 and fill the psDict.
+		
+		# PAGE ONE ----
+		pageOfInterest = pdfReader.pages[0].extract_text().split('\n')
+		employer = pageOfInterest[0] #Seems to be the rule in this case.
+		employeeName = ""
+		totalPretaxIncome = ""
+		for index, line in enumerate(pageOfInterest):
+			if employeeName == "" and "Name: " in line:
+				words = line.split(' ')
+				for word in words[1:]: #Cut out the first word as it will be "Name: "
+					if word == "Employee" :
+						#once we reach the end of the name, break.
+						break
+					employeeName += word + " "
+				employeeName.strip()
+			elif totalPretaxIncome == "" and "3. TOTAL TAXABLE EARNINGS" in line:
+				words = pageOfInterest[index+1].strip().split(" ")
+				totalPretaxIncome = words[0]
 
+		fullDict = {
+			"employeeName":employeeName,
+			"employer":employer,
+			"totalPretaxIncome":totalPretaxIncome,
+			"data":psDict
+		}
+
+		return fullDict
 
 	#print("-------")
 	#print(yaml.dump(psDict, default_flow_style=False))
-	return psDict
+	
 
+#ingestPDF("test2.pdf")

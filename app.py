@@ -1,54 +1,53 @@
-from tkinter import Tk     
-from tkinter import filedialog as fd     
-from tkinter.filedialog import askopenfilename
-
 import flask
 from flask import Flask, redirect, url_for, render_template, flash, request, session, send_from_directory, current_app
 from flask_restful import Resource, Api, reqparse, inputs
-
+from multiprocessing import Process, Queue
 
 import logging
 import webbrowser
 import requests
 import shelve
+import sys
+import os
 
 #My files.
 import PayslipFunctions as pFx
+import utilities as ut
 
 # Initialise
-app = Flask("PayCAT")
+#To ensure this works packaged.
+if getattr(sys, 'frozen', False):
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    app = Flask("PayCAT", template_folder=template_folder)
+else:
+    app = Flask("PayCAT")
+
 logging.basicConfig(filename='server.log', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S%p')
 api = Api(app)
 #SHELF
 SHELF_NAME = "PayCAT-shelf"
+with shelve.open(SHELF_NAME, writeback=True) as shlf:
+	if not "_NEXT_ID" in shlf:
+		shlf["_NEXT_ID"] = 1
 #?Do YAML config.
 
 @app.route("/")
 def home():
-	return render_template("navbar.html")
+	return render_template("index.html")
 
 # ------–––– API ------––––
 
 class PDFDataList(Resource):
 	def get(self):
-
-		filename = ""
-		filename = askopenfilename()
-		root.withdraw()
-		if filename == "":
-			root.mainloop()
-		else:
-			root.destroy()
-
-		# Get rid of this when shelf established. Its wrong.
-		#return pFx.ingestPDF('test2.pdf'), 200
-		keysList = []
+		returnDict = {}
+		# Essentially jsonify the entire shelf for transmitting.
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
 			for key in shlf:
-				keysList.append(key)
+				if not key == "_NEXT_ID":
+					returnDict.update({key:shlf[key]})
 
 		return {
-			"data":keysList,
+			"data":returnDict,
 			"message":"Success"
 		}, 200
 
@@ -56,75 +55,79 @@ class PDFDataList(Resource):
 	# Get given a valid local filename, and then generate+store a psDict using that filename
 	# Return the psDict just created (would just be calling GET anyway.)
 	def post(self):
-		parser = reqparse.RequestParser()
-		# e.g. pdfName = "/Users/sam/Documents/payslip.pdf"
-		parser.add_argument("pdfName")
-		parsed_args = parser.parse_args()
+		#Dead On Arrival POST request - simply a cue to open the file picker locally.
+
+		#Unfortunately neccessary to create an entire subprocess just to use tkinter (as it *must* be run in the main process.)
+		#Then uses a Queue the file path back to the main process.
+		pdfNameLong = ""
+		if __name__ == "__main__":
+			q = Queue()
+			p = Process(target=ut.filePicker,args=(q,))
+			p.start()
+			pdfNameLong = q.get()
+			p.join()
 		# Check validity
-		if not parsed_args["pdfName"][-4:] == ".pdf":
+		if not pdfNameLong[-4:] == ".pdf":
 			return {
 				"data":None,
 				"message":"Incorrect file type - pdfs only!"
 			}, 415
-
-		jeff = selectFile()
-		print(jeff)
-
-		return 1, 200
-
 		# Try to find the file.
 		try:
-			newPsDict = pFx.ingestPDF(parsed_args["pdfName"])
+			shelfEntry = pFx.ingestPDF(pdfNameLong)
 			#Shed the leading directories
-			fileNameShort = parsed_args["pdfName"].split('/')[-1]
-			print("Short filename: "+fileNameShort)
+			fileNameShort = pdfNameLong.split('/')[-1]
+			newlyMadeID = None
 			#Shelf save.
 			with shelve.open(SHELF_NAME, writeback=True) as shlf:
-				
-				if fileNameShort in shlf:
-					#Attempt to unique-ify the name. This may be unsuccessful, thus the second loop check.
-					filesTrueName = fileNameShort[:-4] #trim the .pdf
-					fileNameShort = filesTrueName + "(1).pdf"
-					indx = 1
-					#Did that unique-ifying work?
-					while fileNameShort in shelf:
-						#No? Ok keep iterating.
-						indx += 1
-						fileNameShort = filesTrueName + "(" + str(indx) + ").pdf"
-				
-				#Add candidate to shelf.
-				shlf[fileNameShort] = newPsDict
-			return {
-				"data":newPsDict,
-				"message":"Success"
-			}, 201
+				"""
+					REDUNDANT - don't need to uniqufy these anymore as data is stored under IDs now.
+					if fileNameShort in shlf:
+						#Attempt to unique-ify the name. This may be unsuccessful, thus the second loop check.
+						filesTrueName = fileNameShort[:-4] #trim the .pdf
+						fileNameShort = filesTrueName + "(1).pdf"
+						indx = 1
+						#Did that unique-ifying work?
+						while fileNameShort in shlf:
+							#No? Ok keep iterating.
+							indx += 1
+							fileNameShort = filesTrueName + "(" + str(indx) + ").pdf"
+				"""
+				#Add candidate to shelf using the next unique ID
+				newlyMadeID = str(shlf["_NEXT_ID"])
+				shlf['_NEXT_ID'] += 1
+				shelfEntry.update({
+					"name":fileNameShort,
+					"type":"view"
+					})
+				shlf[newlyMadeID] = shelfEntry
+				return {
+					"data":shlf[newlyMadeID],
+					"message":"Success"
+				}, 201
 		except (FileNotFoundError):
 			return {
 				"data": None,
 				"message":"File not found."
 			}, 404
 
-	#pdfNameShort is the filename minus all directories it's in.
-	def delete(self, pdfNameShort):
-		#If in shelf, delete it.
-		return 200
-
 
 api.add_resource(PDFDataList, "/api/PDFData")
 
 class PDFData(Resource):
-	def get(self, pdfNameShort):
-		# Validate.
+	def get(self, pdfID):
+		"""# Validate.
 		if not pdfNameShort[-4:] == ".pdf":
 			return {
 				"data":None,
 				"message":"Incorrect file type - pdfs only!"
 			}, 415
+			"""
 		toReturn = {}
 		# Retrieve that entry from the shelf if it exists.
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
 			try:
-				toReturn = shlf[pdfNameShort]
+				toReturn = shlf[pdfID]
 			except (KeyError):
 				return {
 					"data":None,
@@ -135,15 +138,10 @@ class PDFData(Resource):
 			"message":"Success"
 		}, 200
 
-	def delete(self, pdfNameShort):
-		if not pdfNameShort[-4:] == ".pdf":
-			return {
-				"data":None,
-				"message":"Incorrect file type - pdfs only!"
-			}, 415
+	def delete(self, pdfID):
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
-			if pdfNameShort in shlf:
-				shlf.pop(pdfNameShort)
+			if pdfID in shlf:
+				shlf.pop(pdfID)
 				return {
 					"data":None,
 					"message":"Success"
@@ -154,7 +152,7 @@ class PDFData(Resource):
 					"message":"Could not find file by that name."
 				}, 404
 
-api.add_resource(PDFData, "/api/PDFData/<string:pdfNameShort>")
+api.add_resource(PDFData, "/api/PDFData/<string:pdfID>")
 
 
 
@@ -162,8 +160,7 @@ api.add_resource(PDFData, "/api/PDFData/<string:pdfNameShort>")
 
 def start():
 	if __name__ == "__main__":
-		root = Tk()
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
-#webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 start()
