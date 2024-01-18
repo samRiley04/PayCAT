@@ -154,7 +154,22 @@ class PDFData(Resource):
 
 api.add_resource(PDFData, "/api/PDFData/<string:pdfID>")
 
+class FilePath(Resource):
+	#Kinda counter intuitive - but GET the path because the application creates the file selector popup and gives the info back to the user.
+	def get(self):
+		pickedPath = None
+		if __name__ == "__main__":
+			q = Queue()
+			p = Process(target=ut.filePicker,args=(q,))
+			p.start()
+			pickedPath = q.get()
+			p.join()
+		return {
+			"data":pickedPath,
+			"message":"Success"
+		}, 200
 
+api.add_resource(FilePath, "/api/FilePath")
 
 #--------------------------------
 
@@ -162,5 +177,5 @@ def start():
 	if __name__ == "__main__":
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
-webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+#webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 start()
