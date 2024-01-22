@@ -24,33 +24,82 @@
 
 let selectedSidebarEntry = null
 
-function newPDF() {
+// For creating new viewMode or compareMode entry()
+let viewModeFS1path = ""
+let compareModeFS1path = ""
+let compareModeFS2path = ""
+
+function newViewmode() {
+  if (viewModeFS1path == "") {
+    //Tell user to select a file and abort
+    $("#newEntryModal").find("#viewMode-FS1").addClass("is-invalid")
+    return 0;
+  } 
+  // Otherwise, submit a new POST for server to ingest an entry.
   $.when($.ajax({
       url: "http://localhost:8000/api/PDFData",
       type: 'POST',
-      body: {},
-      timeout: 180000, //3 minutes
+      contentType: 'application/json',
+      data: JSON.stringify({
+        "filePath":viewModeFS1path,
+        "mode":"view"
+      }),
+      timeout: 4000, //3 minutes
       headers: {
         'Access-Control-Allow-Origin': '*'
       }
     })).done(function (data) {
-      updateSidebarList()
+      $('#newEntryModal').modal('hide');
+      updateSidebarList();
+      clearFileSelect();
     }).fail(function (data) {
       alert("failed to add PDF.")
       //$('#card-container').html("<span class=\"fw-bold text-danger\">Failed to load PDF.</span>")
     });
+}
 
+function newComparemode() {
+  if (compareModeFS1path == "") {
+    //Tell user to select a file and abort
+    $("#newEntryModal").find("#compareMode-FS1").addClass("is-invalid")
+  } 
+  if (compareModeFS2path == "") {
+    $("#newEntryModal").find("#compareMode-FS2").addClass("is-invalid")
+  }
+  if (compareModeFS2path == "" || compareModeFS1path == "") {
+    return 0;
+  }
+
+  const pathsList = [compareModeFS1path, compareModeFS2path]
+  alert(pathsList)
+  // Otherwise, submit a new POST for server to ingest an entry.
+  $.when($.ajax({
+      url: "http://localhost:8000/api/PDFData",
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        "filePath":pathsList,
+        "mode":"compare"
+      }),
+      timeout: 4000, //3 minutes
+      headers: {
+        'Access-Control-Allow-Origin': '*'
+      }
+    })).done(function (data) {
+      $('#newEntryModal').modal('hide');
+      updateSidebarList();
+      clearFileSelect();
+    }).fail(function (data) {
+      alert("failed to add PDF.")
+      //$('#card-container').html("<span class=\"fw-bold text-danger\">Failed to load PDF.</span>")
+    });
 }
 
 //Refreshes the sidebar (which displays all payslips stored in the local shelf DB.)
 function updateSidebarList() {
-  //TODO:
-  //AJAX call the local DB - GET /api/PDFData
-  //jQuery - generate all list items after deleting all old ones.
   $.when($.ajax({
       url: "http://localhost:8000/api/PDFData",
       type: 'GET',
-      body: {},
       timeout: 4000,
       headers: {
         'Access-Control-Allow-Origin': '*'
@@ -60,12 +109,12 @@ function updateSidebarList() {
       $('#side-bar-listgroup').html($('#template-storage > #side-bar-header').clone().attr('id', 'side-bar-header-clone'))
       for (entryID in data["data"]) {
         //for each entry in the shelf database, create a new entry in the sidebar
-        if (data["data"][entryID]["type"] == "view") {
+        if (data["data"][entryID]["mode"] == "view") {
           $('#side-bar-listgroup').append($('#template-storage > #side-bar-view').clone().attr('id',String(entryID)+"-entry"))
           $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").find("#file-title").text(data["data"][entryID]["name"])
           $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").find("#sbv-delbutton").attr('onclick', "deleteSidebarEntry("+entryID+"); event.stopPropagation();")
           $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").attr('onclick', "selectSidebarEntry("+entryID+")")
-        } else if (data["data"][entryID]["type"] == "compare") {
+        } else if (data["data"][entryID]["mode"] == "compare") {
           alert("compare")
         }
         // Is selected?
@@ -100,7 +149,7 @@ function loadEntry(pdfID) {
       }
     })).done(function (data) {
       // --- For VIEW-type entries: ---
-      if (data["data"]["type"] == "view") {
+      if (data["data"]["mode"] == "view") {
         let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
         //Clear the main container and add the new content type.
         $('#content-column').html($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
@@ -144,10 +193,14 @@ function loadEntry(pdfID) {
             $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").text("$"+entry["amount"])
           }
           //finally record the sum of all amounts
-           $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
+          $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
         }
+        //Record the heading entries
+        $('#'+newID+"-header").find("#viewMode-PPE").text("PPE " + data["data"]["payPeriodEnding"])
+        $('#'+newID+"-header").find("#viewMode-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
+        $('#'+newID+"-header").find("#viewMode-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
       // --- For COMPARE-type entries: ---
-      } else if (data["type"] == "compare") {
+      } else if (data["data"]["mode"] == "compare") {
         alert("todo")
       } else {
         // ?? what else is there.
@@ -175,6 +228,58 @@ function deleteSidebarEntry(pdfID) {
     }).fail(function (data) {
       alert("Failed deleting entry");
     });
+}
+
+function userSelectFile() {
+  $.when($.ajax({
+    url: "http://localhost:8000/api/FilePath",
+    type: 'GET',
+    timeout: 160000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+    return data["data"];
+  }).fail(function (data) {
+    alert("Failed to get path. Message: "+data["message"]);
+  });
+}
+
+//Rests all variables to empty, file-selectors to empty, and removes all invalid labels.
+function clearFileSelect() {
+  viewModeFS1path = "";
+  compareModeFS1path = "";
+  compareModeFS2path = "";
+  $("#newEntryModal").find("#viewMode-FS1").removeClass("is-invalid")
+  $("#newEntryModal").find("#viewMode-FS1").val("")
+  $("#newEntryModal").find("#compareMode-FS1").removeClass("is-invalid")
+  $("#newEntryModal").find("#compareMode-FS1").val("")
+  $("#newEntryModal").find("#compareMode-FS2").removeClass("is-invalid")
+  $("#newEntryModal").find("#compareMode-FS2").val("")
+}
+
+//fsID includes # already.
+function fillFileSelect(fsID) {
+  $.when($.ajax({
+    url: "http://localhost:8000/api/FilePath",
+    type: 'GET',
+    timeout: 160000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+    let filePath = data["data"].split('/')
+    $(fsID).val(filePath[filePath.length -1])
+    if (fsID == "#viewMode-FS1") {
+      viewModeFS1path = data["data"]
+    } else if (fsID == "#compareMode-FS1") {
+      compareModeFS1path = data["data"]
+    } else if (fsID == "#compareMode-FS2") {
+      compareModeFS2path = data["data"]
+    }
+  }).fail(function (data) {
+    alert("Failed to get path. Message: "+data["message"]);
+  });
 }
 
 //When no payslip entry is selected, this is the data shown.

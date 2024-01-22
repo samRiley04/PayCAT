@@ -55,6 +55,7 @@ class PDFDataList(Resource):
 	# Get given a valid local filename, and then generate+store a psDict using that filename
 	# Return the psDict just created (would just be calling GET anyway.)
 	def post(self):
+		"""
 		#Dead On Arrival POST request - simply a cue to open the file picker locally.
 
 		#Unfortunately neccessary to create an entire subprocess just to use tkinter (as it *must* be run in the main process.)
@@ -73,42 +74,48 @@ class PDFDataList(Resource):
 				"message":"Incorrect file type - pdfs only!"
 			}, 415
 		# Try to find the file.
-		try:
-			shelfEntry = pFx.ingestPDF(pdfNameLong)
-			#Shed the leading directories
-			fileNameShort = pdfNameLong.split('/')[-1]
-			newlyMadeID = None
-			#Shelf save.
-			with shelve.open(SHELF_NAME, writeback=True) as shlf:
-				"""
-					REDUNDANT - don't need to uniqufy these anymore as data is stored under IDs now.
-					if fileNameShort in shlf:
-						#Attempt to unique-ify the name. This may be unsuccessful, thus the second loop check.
-						filesTrueName = fileNameShort[:-4] #trim the .pdf
-						fileNameShort = filesTrueName + "(1).pdf"
-						indx = 1
-						#Did that unique-ifying work?
-						while fileNameShort in shlf:
-							#No? Ok keep iterating.
-							indx += 1
-							fileNameShort = filesTrueName + "(" + str(indx) + ").pdf"
-				"""
-				#Add candidate to shelf using the next unique ID
-				newlyMadeID = str(shlf["_NEXT_ID"])
-				shlf['_NEXT_ID'] += 1
-				shelfEntry.update({
-					"name":fileNameShort,
-					"type":"view"
-					})
-				shlf[newlyMadeID] = shelfEntry
+		"""
+		parser = reqparse.RequestParser()
+		parser.add_argument("filePath")
+		parser.add_argument("mode")
+		parsed_args = parser.parse_args()
+
+		# CREATE VIEW MODE ---
+		if parsed_args["mode"] == "view":
+			try:
+				shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
+				#Shed the leading directories
+				fileNameShort = parsed_args["filePath"].split('/')[-1]
+				newlyMadeID = None
+				#Shelf save.
+				with shelve.open(SHELF_NAME, writeback=True) as shlf:
+					#Add candidate to shelf using the next unique ID
+					newlyMadeID = str(shlf["_NEXT_ID"])
+					shlf['_NEXT_ID'] += 1
+					shelfEntry.update({
+						"name":fileNameShort,
+						"mode":"view"
+						})
+					shlf[newlyMadeID] = shelfEntry
+					return {
+						"data":shlf[newlyMadeID],
+						"message":"Success"
+					}, 201
+			except (FileNotFoundError):
 				return {
-					"data":shlf[newlyMadeID],
-					"message":"Success"
-				}, 201
-		except (FileNotFoundError):
+					"data": None,
+					"message":"File not found."
+				}, 404
+		# CREATE COMPARE MODE ---
+		elif parsed_args["mode"] == "compare":
+			#Do some compare shit.
+			print(parsed_args["filePath"])
+			return {}, 200
+		else:
+			#Unknown mode.
 			return {
-				"data": None,
-				"message":"File not found."
+				"data":None,
+				"message":"Unknown mode supplied."
 			}, 404
 
 
@@ -155,7 +162,7 @@ class PDFData(Resource):
 api.add_resource(PDFData, "/api/PDFData/<string:pdfID>")
 
 class FilePath(Resource):
-	#Kinda counter intuitive - but GET the path because the application creates the file selector popup and gives the info back to the user.
+	#Kinda counter intuitive - but GET the path because the application creates the file selector popup and gives the info back to the requester.
 	def get(self):
 		pickedPath = None
 		if __name__ == "__main__":

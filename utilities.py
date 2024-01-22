@@ -8,3 +8,18 @@ def filePicker(q):
 	root.withdraw()
 	file_path = askopenfilename()
 	q.put(file_path)
+
+
+"""
+	REDUNDANT - don't need to uniqufy these anymore as data is stored under IDs now.
+	if fileNameShort in shlf:
+		#Attempt to unique-ify the name. This may be unsuccessful, thus the second loop check.
+		filesTrueName = fileNameShort[:-4] #trim the .pdf
+		fileNameShort = filesTrueName + "(1).pdf"
+		indx = 1
+		#Did that unique-ifying work?
+		while fileNameShort in shlf:
+			#No? Ok keep iterating.
+			indx += 1
+			fileNameShort = filesTrueName + "(" + str(indx) + ").pdf"
+"""

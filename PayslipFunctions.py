@@ -105,6 +105,7 @@ def ingestPDF(fileName):
 		pageOfInterest = pdfReader.pages[0].extract_text().split('\n')
 		employer = pageOfInterest[0] #Seems to be the rule in this case.
 		employeeName = ""
+		payPeriodEnding = ""
 		totalPretaxIncome = ""
 		for index, line in enumerate(pageOfInterest):
 			if employeeName == "" and "Name: " in line:
@@ -118,11 +119,15 @@ def ingestPDF(fileName):
 			elif totalPretaxIncome == "" and "3. TOTAL TAXABLE EARNINGS" in line:
 				words = pageOfInterest[index+1].strip().split(" ")
 				totalPretaxIncome = words[0]
+			elif payPeriodEnding == "" and "Period End Date: " in line:
+				words = line.split(' ')
+				payPeriodEnding = words[-1]
 
 		fullDict = {
 			"employeeName":employeeName,
 			"employer":employer,
 			"totalPretaxIncome":totalPretaxIncome,
+			"payPeriodEnding":payPeriodEnding,
 			"data":psDict
 		}
 

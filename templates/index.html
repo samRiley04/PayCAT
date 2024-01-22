@@ -6,6 +6,8 @@
     <title>PayCAT</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-5.3.2-dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
+
 
     <!--
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -29,7 +31,8 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarCollapse">
       <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" hidden>
+          <!--  -->
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             New
           </a>
@@ -37,6 +40,9 @@
             <li><a class="dropdown-item" href="#" onclick="newPDF();">Payslip...</a></li>
             <li><a class="dropdown-item" href="#">Roster...</a></li>
           </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="modal" data-bs-target="#newEntryModal" role="button" onclick="clearFileSelect()">New</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">Export</a>
@@ -53,7 +59,7 @@
     <div class="col-3 gx-0">
       <div class="list-group list-group-flush border border-2" id='side-bar-listgroup'>
         <a href="" class="list-group-item bg-body-tertiary text-center">
-          <span class="fs-4 fw-semibold">Projects</span>
+          <span class="fs-4 fw-semibold">Studies</span>
         </a>
 
       </div>
@@ -66,12 +72,12 @@
     <div class="bg-body-tertiary p-3 rounded" id="viewMode-header">
       <div class="row">
         <div class="col-auto">
-          <h1><b>PPE DD-MM-YYYY</b></h1>
-          <p class="fw-light fst-italic">NAME / EMPLOYER</p>
+          <h1 class="fw-bold" id="viewMode-PPE">PPE DD-MM-YYYY</h1>
+          <span class="fw-light fst-italic" id="viewMode-name-employer">NAME / EMPLOYER</span>
         </div>
         <div class="col-sm text-end">
-          <h1 class="text-success"><b>$----.--</b></h1>
-          <p class="fw-light fst-italic">Taxable income this period</p>
+          <h1 class="text-success fw-bold" id="viewMode-totalPTI">$----.--</h1>
+          <span class="fw-light fst-italic">Taxable income this period</span>
         </div>
       </div>
     </div>
@@ -244,23 +250,23 @@
   <!-- Content column -->
   <div class="col-lg gx-3 p-2" id="content-column">
     
-
-
   </div>
 
-  <div>
-    <!-- Button trigger modal -->
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newStudyModal">
-  Launch demo modal
-</button>
-
 <!-- Modal -->
-<div class="modal fade" id="newStudyModal" tabindex="-1">
+<div class="modal fade" id="newEntryModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title fs-5">New Study</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="container-fluid">
+          <div class='row p-0 justify-content-between'>
+            <div class="col p-0">
+              <h1 class="modal-title fs-3">New Study</h1>
+            </div>
+            <div class="col-auto p-0 align-self-center">
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-body">
         <!-- MODAL FORM START -->
@@ -284,30 +290,35 @@
         </div>
         <div class="row px-2">
           <div class="col mx-1 py-2 rounded-bottom-2 bg-primary-subtle">
-            <form>
+            <form class="is-invalid">
               <div class="mb-3">
-                <label for="formFile" class="form-label">Select files</label>
-                <input class="form-control" type="file" id="formFile">
+                <div class="input-group">
+                  <span class="input-group-text" onclick="fillFileSelect('#viewMode-FS1');" role='button'>Choose File</span>
+                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="viewMode-FS1">
+                  </div>
               </div>
-              <button type="button" class="btn btn-outline-primary">Create View</button>
+              <button type="button" class="btn btn-outline-primary" onclick="newViewmode();">Create View</button>
             </form>
           </div>
           <div class="col mx-1 py-2 rounded-bottom-2 bg-danger-subtle">
             <form>
               <div class="mb-3">
-                <label for="formFile" class="form-label">Select files</label>
-                <input class="form-control" type="file" id="formFile" onclick="alert('asd'); event.stopPropagation();">
+                <div class="input-group mb-3">
+                  <span class="input-group-text" onclick="fillFileSelect('#compareMode-FS1')" role='button'>Choose File</span>
+                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS1">
+                  </div>
               </div>
               <div class="mb-3">
-                <input class="form-control" type="file" id="formFile">
+                <div class="input-group mb-3">
+                  <span class="input-group-text" onclick="fillFileSelect('#compareMode-FS2');" role='button'>Choose File</span>
+                  <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS2">
+                </div>
               </div>
-              <button type="button" class="btn btn-outline-danger">Create Compare</button>
+              <button type="button" onclick="newComparemode()" class="btn btn-outline-danger">Create Compare</button>
             </form>
 
           </div>
         </div>
-
-
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
