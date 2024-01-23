@@ -1,5 +1,12 @@
 import PyPDF2
+import openpyxl
+from openpyxl import load_workbook
 import yaml
+from datetime import datetime
+from datetime import time
+from dateutil import parser
+import json
+import re
 
 #Alerts - in the form [priority (HI/MED/LO), title, body]
 alerts = []
@@ -18,6 +25,86 @@ descShortlist = [
 	"MEAL - DINNER MED PRACT",
 	"ANNUAL LEAVE"
 ]
+
+# Returns the number of hours represented by a string of a given time range
+# e.g. '0800-1800' returns 10
+def parseHours(string):
+	# This regular expression makes me aroused
+	# the 'or' part allows matching of 0800 as well as 800 meaning 8am.
+	s = re.search(r'(\d{4}|[1-9]\d{2}|000)\s*-\s*(\d{4}|[1-9]\d{2}|000)', string)
+	if not s is None:
+		times = s.group().replace(' ','').split("-")
+		for t in times:
+			# Regex has ensured this is safe to do - if time has no leading zero, add it. (required for datetime)
+			if len(t) == 3:
+				t = "0"+t
+		dif = datetime.strptime(times[1], "%H%M") - datetime.strptime(times[0], "%H%M")
+		return float((dif.seconds/60)/60)
+	else:
+		return None
+
+
+def ingestRoster(fileName):
+	findName = "RILEY"
+	rosterFormat = "C"
+	startDate = "2022-11-07"
+	endDate = "2022-11-13"
+	outputDict = {}
+
+	wb = load_workbook(fileName)
+
+	if rosterFormat == "A":
+		pass
+	elif rosterFormat == "B":
+		pass
+	elif rosterFormat == "C":
+		for sheet in wb:
+			tempDates = {}
+			# find DATE ROWS
+			for row in sheet.iter_cols():
+				for cell in row:
+					# If the cell isn't empty
+					if not (cell.value is None):
+						try:
+						    parser.parse(str(cell.value))
+						    # Add the cell to the dict of dates.
+						    tempDates.update({
+						    	str(cell.row):str(cell.value)
+						    })
+						except ValueError as e:
+							#Doesn't identify cell as a date.
+							pass
+					else:
+						pass		
+					#print(type(cell.value))
+			print(json.dumps(tempDates , indent=4))
+			# find NAME COLS
+			tempNameCols = []
+			for row in sheet.iter_rows():
+				for cell in row:
+					if cell.value == findName:
+						tempNameCols.append(str(cell.column_letter))
+			# create outputDict
+			for col in tempNameCols:
+				for row in tempDates:
+					outputDict.update({tempDates[row]:parseHours(sheet[str(col)+str(row)].value)})
+
+			print(outputDict)			
+
+			#Only do one sheet for now	
+			break
+	else:
+		#the fuck?
+		return 0
+
+
+
+
+
+
+
+
+ingestRoster("TESTING/test.xlsx")
 
 def ingestPDF(fileName):
 	#Payslip Dictionary (the end product of ingesting the payslip)

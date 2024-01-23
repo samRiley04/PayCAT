@@ -294,7 +294,7 @@
               <div class="mb-3">
                 <div class="input-group">
                   <span class="input-group-text" onclick="fillFileSelect('#viewMode-FS1');" role='button'>Choose File</span>
-                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="viewMode-FS1">
+                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="viewMode-FS1" readonly>
                   </div>
               </div>
               <button type="button" class="btn btn-outline-primary" onclick="newViewmode();">Create View</button>
@@ -305,13 +305,13 @@
               <div class="mb-3">
                 <div class="input-group mb-3">
                   <span class="input-group-text" onclick="fillFileSelect('#compareMode-FS1')" role='button'>Choose File</span>
-                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS1">
+                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS1" readonly>
                   </div>
               </div>
               <div class="mb-3">
                 <div class="input-group mb-3">
                   <span class="input-group-text" onclick="fillFileSelect('#compareMode-FS2');" role='button'>Choose File</span>
-                  <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS2">
+                  <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="compareMode-FS2" readonly>
                 </div>
               </div>
               <button type="button" onclick="newComparemode()" class="btn btn-outline-danger">Create Compare</button>

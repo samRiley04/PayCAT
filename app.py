@@ -78,6 +78,8 @@ class PDFDataList(Resource):
 		parser = reqparse.RequestParser()
 		parser.add_argument("filePath")
 		parser.add_argument("mode")
+		# Optional
+		parser.add_argument("filePath2")
 		parsed_args = parser.parse_args()
 
 		# CREATE VIEW MODE ---
@@ -109,7 +111,7 @@ class PDFDataList(Resource):
 		# CREATE COMPARE MODE ---
 		elif parsed_args["mode"] == "compare":
 			#Do some compare shit.
-			print(parsed_args["filePath"])
+			print(parsed_args)
 			return {}, 200
 		else:
 			#Unknown mode.

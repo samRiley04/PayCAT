@@ -70,16 +70,15 @@ function newComparemode() {
     return 0;
   }
 
-  const pathsList = [compareModeFS1path, compareModeFS2path]
-  alert(pathsList)
   // Otherwise, submit a new POST for server to ingest an entry.
   $.when($.ajax({
       url: "http://localhost:8000/api/PDFData",
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
-        "filePath":pathsList,
-        "mode":"compare"
+    "filePath":compareModeFS1path,
+    "filePath2":compareModeFS2path,
+    "mode":"compare"
       }),
       timeout: 4000, //3 minutes
       headers: {

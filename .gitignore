@@ -5,3 +5,5 @@ test.pdf
 PayCAT-shelf.db
 server.log
 test.py
+TESTING/*
+__pycache__/PayslipFunctions.cpython-311.pyc
