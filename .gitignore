@@ -1,4 +1,4 @@
-
+.DS_Store
 test2.pdf
 testing.py
 test.pdf
@@ -8,3 +8,7 @@ test.py
 TESTING/*
 __pycache__/*
 ads.py
+test-nsurg.py
+test-OPH.py
+test-payroll.py
+jeff.py

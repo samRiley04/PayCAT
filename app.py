@@ -80,6 +80,10 @@ class PDFDataList(Resource):
 		parser.add_argument("mode")
 		# Optional
 		parser.add_argument("filePath2")
+		parser.add_argument("rosterType")
+		parser.add_argument("employeeName")
+		parser.add_argument("startDate")
+		parser.add_argument("endDate")
 		parsed_args = parser.parse_args()
 
 		# CREATE VIEW MODE ---

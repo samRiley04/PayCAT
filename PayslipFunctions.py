@@ -2,7 +2,7 @@ import PyPDF2
 import openpyxl
 from openpyxl import load_workbook
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import time
 from dateutil import parser
 import json
@@ -32,12 +32,14 @@ def parseHours(string):
 	s = None
 	try:
 		# This regular expression makes me aroused
-		# the 'or' part allows matching of 0800 as well as 800 (meaning 8am).
-		s = re.search(r'(\d{4}|[1-9]\d{2}|000)\s*-\s*(\d{4}|[1-9]\d{2}|000)', string)
+		# accepts (HHHH or (1 to 9)HH or 000)-(HHHH or (1 to 9)HH or 000)
+		# or
+		# accepts (HH:HH or (1 to 9):HH or 0:00)-(HH:HH or (1 to 9):HH or 0:00)
+		s = re.search(r'(\d{2}(:?)\d{2}|[1-9](:?)\d{2}|0(:?)00)\s*-\s*(\d{2}(:?)\d{2}|[1-9](:?)\d{2}|0(:?)00)', string)
 	except TypeError:
 		pass
 	if not s is None:
-		times = s.group().replace(' ','').split("-")
+		times = s.group().replace(' ','').replace(":","").split("-")
 		outputStr = ""
 		# Have to clone the array else it gives errors.
 		for indx, t in enumerate(times.copy()):
@@ -66,18 +68,132 @@ def parseDate(string):
 	else:
 		return None
 
-#given openpyxl cell object containing a date check if it's "valid"
-# Valid date entries have a shift entry below them (at least somewhere) and DONT have dates below them.
-# SENSITIVITY MAY NEED TO BE TITRATED TO EFFECT in future. (titrate marginValue)
+def ingestTypeA(sheet, findName, debug):
+	outputDict = {}
+	return outputDict
+
+def ingestTypeB(sheet, findName, debug):
+	outputDict = {}
+	tempDates = {}
+	# find DATE CELLS
+	# AND check validity of DATES simultaneously
+	for row in sheet.iter_rows():
+		for cell in row:
+			# If the cell isn't empty
+			if not (cell.value is None):
+				dateAttempt = parseDate(str(cell.value))
+				#parseDate returns None if it doesn't match a date.
+				# Then check if it's a valid bonafide date. (check down first, if that fails, laterally)
+				if not (dateAttempt is None):
+					if dateValidTypeB(cell, sheet):
+						# Copy whole cell object so can access row/col easier.
+						tempDates.update({
+							str(dateAttempt):cell
+						})
+					elif debug:
+						print("DISCARDING potential date: " + dateAttempt)
+	if len(tempDates) == 0:
+		#Found no recognisable dates in the roster
+		raise ValueError("No recognisable dates found in the roster.")
+	if debug:
+		print("tempDates: "+ str(tempDates))
+	# find NAME COLS
+	tempNameRows = []
+	for col in sheet.iter_cols():
+		for cell in col:
+			if cell.value == findName:
+				tempNameRows.append(cell.row)
+	if len(tempNameRows) == 0:
+		# Did not find a name.
+		raise ValueError("Employee name not found in roster. Is it spelled correctly?")
+	# create outputDict
+	# Remember tempDates contains {DATES:cells}
+	if debug:
+		print("tempNameRows: " + str(tempNameRows))
+	for dateKey in tempDates:
+		# Find out if the nameRow is the closest row AFTER the date in question (prevent doubling up due to vertical roster stacking)
+		closestRow = max(tempNameRows)
+		for row in tempNameRows:
+			rowDif1 = row - int(tempDates[dateKey].row)
+			rowDif2 = closestRow - int(tempDates[dateKey].row)
+			# >0 ensures the row is AFTER the date in question.
+			if (rowDif1 < rowDif2) and (rowDif1 > 0):
+				closestRow = row
+			#if debug:
+				#print("attempted row: " + str(row)+". dif was "+str(rowDif1) + " and now closest row is " + str(closestRow))
+
+		if debug:
+			print("col: "+ tempDates[dateKey].column_letter + " | row: "+ str(closestRow))
+		hrs = parseHours(sheet[str(tempDates[dateKey].column_letter)+str(closestRow)].value)
+		if not (hrs is None):
+			# Only update the dict if hours worked is a value
+			outputDict.update({dateKey:hrs})
+	if debug:
+		print("Pre-cull outputDict: ")
+		print(json.dumps(outputDict, indent=4))
+	return outputDict
+
+def ingestTypeC(sheet, findName, debug):
+	outputDict = {}
+	tempNameCols = []
+	# find NAME CELLS
+	# AND check validity of NAMES simultaneously
+	for row in sheet.iter_rows():
+		for cell in row:
+			# If the cell isn't empty
+			if not (cell.value is None) and (cell.value == findName) and not (cell.column_letter in tempNameCols):
+				tempNameCols.append(cell.column_letter)
+	if len(tempNameCols) == 0:
+		#Found no recognisable name in the roster
+		raise ValueError("Employee name not found in roster. Is it spelled correctly?")	
+	if debug:
+		print("tempNameCols: " + str(tempNameCols))
+	# find DATE ROWS (include the dates as well {"2":"2023-08-22"})
+	tempDates = {}
+	for col in sheet.iter_cols():
+		for cell in col:
+			if not (cell.value is None):
+				dateAttempt = parseDate(str(cell.value))
+				if not (dateAttempt is None):
+					if dateValidTypeC(cell, sheet):
+						tempDates.update({
+							cell.row:dateAttempt
+							})
+					elif debug:
+						print("DISCARDING potential date: " + dateAttempt)
+	if len(tempDates) == 0:
+		# Did not find a name.
+		raise ValueError("No recognisable dates found in the roster.")
+	if debug:
+		print("tempDates: " + str(tempDates))
+	# create outputDict
+	# Remember tempNameCols contains [col, col]
+	# Iterate through each name, then collect all the date-rows below it
+	for col in tempNameCols:
+		for row in tempDates:
+			hrs = parseHours(sheet[str(col)+str(row)].value)
+			if not (hrs is None): 
+				outputDict.update({
+					tempDates[row]:hrs
+				})
+	return outputDict
+
+# SENSITIVITY MAY NEED TO BE TITRATED TO EFFECT in future.
+def dateValidTypeA(cell, sheet):
+	return True
+
 def dateValidTypeB(cell, sheet):
+	debug = False
 	counter = 0
 	# After marginValue number of cells that dont contain valid strings, consider this date INVALID.
 	marginValue = 4
+	# CHECK FOR HOURS BELOW
 	# Create a range and iterate (next #marginValue cells not including the date cell itself.)
 	for rowDown in sheet[cell.column_letter+str(cell.row+1):cell.column_letter+str(cell.row+marginValue)]:
 		for cellDown in rowDown:
 			counter += 1
-			print("date: " + str(cell.value) + " | checking: " + str(cellDown.value))
+			if debug:
+				print("date: " + str(cell.value) + " | checking: " + str(cellDown.value))
 			if not (parseHours(cellDown.value) is None):
 				# Got at least one valid string before the marginValue cutoff, so it's Valid.
 				return True
@@ -86,161 +202,94 @@ def dateValidTypeB(cell, sheet):
 				return False
 			elif counter >= marginValue:
 				# Unclear if invalid (only saw empty cells)
+				# CHECK FOR DATES EITHER SIDE
 				# Create a range and iterate
 				if cell.column == 1:
 					compareLeft = "<INVALID_DATE>"
 				else:
 					compareLeft = str(sheet.cell(row=cell.row, column=cell.column-1).value)
 				compareRight = str(sheet.cell(row=cell.row, column=cell.column+1).value)
-				print("R: ")
-				print(compareRight)
-				print("L: ")
-				print(compareLeft)
+				if debug:
+					print("R: ")
+					print(compareRight)
+					print("L: ")
+					print(compareLeft)
 				# If either of left or right are valid dates.
 				if (parseDate(compareLeft) or parseDate(compareRight)):
 					return True
 				return False
 
+def dateValidTypeC(cell, sheet):
+	debug = False
+	"""
+	<TEMPORARILY DISABLED to titrate sensitivity - to be considered for re-inclusion in the future if indicated>
+	counter = 0
+	marginValue = 4
+	# CHECK FOR HOURS ON RIGHT
+	# Create a range and iterate (next #marginValue cells not including the date cell itself.)
+	rangeStart = sheet.cell(column=(cell.column + 1), row=cell.row).coordinate
+	rangeEnd = sheet.cell(column=(cell.column + marginValue), row=cell.row).coordinate
+	for colsAcross in sheet[rangeStart:rangeEnd]:
+		for cellAcross in colsAcross:
+			counter += 1
+			if debug:
+				print("date: " + str(cell.value) + " | checking: " + str(cellAcross.value))
+			if not (parseHours(cellAcross.value) is None):
+				# Got at least one valid string before the marginValue cutoff, so it's Valid.
+				return True
+			elif not (cellAcross.value is None):
+				# If you encounter any non-hours-like shit below, it's likely invalid
+				return False
+			elif counter >= marginValue:
+				# Unclear if invalid (only saw empty cells)
+			"""
+				# CHECK FOR DATES ABOVE/BELOW
+				# Create a range and iterate
+	if cell.row == 1:
+		compareAbove = "<INVALID_DATE>"
+	else:
+		compareAbove = str(sheet.cell(row=cell.row-1, column=cell.column).value)
+	compareBelow = str(sheet.cell(row=cell.row+1, column=cell.column).value)
+	if debug:
+		print("AB: ")
+		print(compareAbove)
+		print("BEL: ")
+		print(compareBelow)
+	# If either of above or below are valid dates.
+	if (parseDate(compareAbove) or parseDate(compareBelow)):
+		return True
+	return False
+
 # RETURN ERRORS
 # ValueError - "employee name not found", "recognisable dates not found"
-# 
-def ingestRoster(fileName):
-	debug = True
-	findName = "Samuel Riley"
-	rosterFormat = "B"
-	startDate = datetime.strptime("2023-08-21", "%Y-%m-%d")
-	endDate = datetime.strptime("2023-08-27", "%Y-%m-%d")
+def ingestRoster(fileName, findName, rosterFormat, startDate, endDate):
+	debug = False
 	outputDict = {}
-
 	wb = load_workbook(fileName, data_only=True)
+	sheet = wb.active
 	if rosterFormat == "A":
-		pass
+		outputDict = ingestTypeA(sheet, findName, debug)
 	elif rosterFormat == "B":
-		sheet = wb.active
-		tempDates = {}
-		# find DATE CELLS
-		# AND check validity of DATES simultaneously
-		for row in sheet.iter_rows():
-			for cell in row:
-				# If the cell isn't empty
-				if not (cell.value is None):
-					dateAttempt = parseDate(str(cell.value))
-					#parseDate returns None if it doesn't match a date.
-					if not (dateAttempt is None):
-						# Then check if it's a valid bonafide date. (check down first, if that fails, laterally)
-						if dateValidTypeB(cell, sheet):
-							# Copy whole cell object so can access row/col easier.
-							tempDates.update({
-								str(dateAttempt):cell
-							})
-						elif debug:
-							print("DISCARDING potential date: " + dateAttempt)
-		if len(tempDates) == 0:
-			#Found no recognisable dates in the roster
-			raise ValueError("No recognisable dates found in the roster.")
-		if debug:
-			print("tempDates: "+ str(tempDates))
-		# find NAME COLS
-		tempNameRows = []
-		for col in sheet.iter_cols():
-			for cell in col:
-				if cell.value == findName:
-					tempNameRows.append(cell.row)
-		if len(tempNameRows) == 0:
-			# Did not find a name.
-			raise ValueError("Employee name not found in roster. Is it spelled correctly?")
-		# create outputDict
-		# Remember tempDates contains {DATES:cells}
-		if debug:
-			print("tempNameRows: " + str(tempNameRows))
-		for dateKey in tempDates:
-			# Find out if the nameRow is the closest row AFTER the date in question (prevent doubling up due to vertical roster stacking)
-			closestRow = max(tempNameRows)
-			for row in tempNameRows:
-				rowDif1 = row - int(tempDates[dateKey].row)
-				rowDif2 = closestRow - int(tempDates[dateKey].row)
-				# >0 ensures the row is AFTER the date in question.
-				if (rowDif1 < rowDif2) and (rowDif1 > 0):
-					closestRow = row
-				#if debug:
-					#print("attempted row: " + str(row)+". dif was "+str(rowDif1) + " and now closest row is " + str(closestRow))
-
-			if debug:
-				print("col: "+ tempDates[dateKey].column_letter + " | row: "+ str(closestRow))
-			hrs = parseHours(sheet[str(tempDates[dateKey].column_letter)+str(closestRow)].value)
-			if not (hrs is None):
-				# Only update the dict if hours worked is a value
-				outputDict.update({dateKey:hrs})
-		if debug:
-			print("Pre-cull outputDict: ")
-			print(json.dumps(outputDict, indent=4))
-		#Now all the roster is ingested, trim the dict using the start/end dates.
-		copy = outputDict.copy()
-		for entry in copy:
-			e = datetime.strptime(entry, "%Y-%m-%d")
-			if not (e >= startDate and e <= endDate):
-				outputDict.pop(entry)
-
-		return outputDict
+		outputDict = ingestTypeB(sheet, findName, debug)
 	elif rosterFormat == "C":
-		sheet = wb.active
-		tempDates = {}
-		# find and store DATE ROWS
-		for col in sheet.iter_cols():
-			for cell in col:
-				# If the cell isn't empty
-				if not (cell.value is None):
-					attempt = parseDate(str(cell.value))
-					#parseDate returns None if it doesn't match a date.
-					if not attempt is None:
-						tempDates.update({
-				    		str(cell.row):str(attempt)
-				   		})
-		if len(tempDates) == 0:
-			#Found no recognisable dates in the roster
-			raise ValueError("No recognisable dates found in the roster.")	
-		# find NAME COLS
-		tempNameCols = []
-		for row in sheet.iter_rows():
-			for cell in row:
-				if cell.value == findName and not (cell.value in tempNameCols):
-					tempNameCols.append(str(cell.column_letter))
-		if len(tempNameCols) == 0:
-			# Did not find a name.
-			raise ValueError("Employee name not found in roster. Is it spelled correctly?")
-		# create outputDict
-		for col in tempNameCols:
-			for row in tempDates:
-				hrs = parseHours(sheet[str(col)+str(row)].value)
-				if not hrs is None:
-					# Only update the dict if hours worked is a value
-					outputDict.update({tempDates[row]:hrs})
-
-		#print(json.dumps(outputDict, indent=4))
-
-		#Now all the roster is ingested, trim the dict using the start/end dates.
-		copy = outputDict.copy()
-		for entry in copy:
-			e = datetime.strptime(entry, "%Y-%m-%d")
-			if not (e >= startDate and e <= endDate):
-				outputDict.pop(entry)
-
-		return outputDict
-
+		outputDict = ingestTypeC(sheet, findName, debug)
 	else:
 		#the fuck?
-		return 0
+		raise ValueError("Invalid roster format: " + str(rosterFormat))
+	#Now all the roster is ingested, trim the dict using the start/end dates.
+	copy = outputDict.copy()
+	for entry in copy:
+		e = datetime.strptime(entry, "%Y-%m-%d")
+		if not (e >= startDate and e <= endDate):
+			outputDict.pop(entry)
+
+	return outputDict
 
 
-
-
-
-
-
-
-print(json.dumps(ingestRoster("TESTING/Nsurg.xlsx"), indent=4))
+print(json.dumps(ingestRoster("TESTING/OPH.xlsx", "Samuel Riley", "C", datetime.strptime("2023-02-13", "%Y-%m-%d"), datetime.strptime("2023-02-26", "%Y-%m-%d")), indent=4))
 
 def ingestPDF(fileName):
+	payPeriodLength = 14
 	#Payslip Dictionary (the end product of ingesting the payslip)
 	psDict = {}
 	with open(fileName, 'rb') as pdf:
@@ -344,18 +393,22 @@ def ingestPDF(fileName):
 				words = line.split(' ')
 				payPeriodEnding = words[-1]
 
+		# Calculate the start of the pay period.
+		ppStart = datetime.strptime(payPeriodEnding, "%d-%m-%Y") - timedelta(days=payPeriodLength)
+
 		fullDict = {
 			"employeeName":employeeName,
 			"employer":employer,
 			"totalPretaxIncome":totalPretaxIncome,
+			"payPeriodStart":ppStart.strftime("%d-%m-%Y"),
 			"payPeriodEnding":payPeriodEnding,
 			"data":psDict
 		}
-
+		#print(json.dumps(fullDict, indent=4))
 		return fullDict
 
 	#print("-------")
-	#print(yaml.dump(psDict, default_flow_style=False))
+	
 	
 
-#ingestPDF("test2.pdf")
+#ingestPDF("test.pdf")
