@@ -288,6 +288,8 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate):
 
 print(json.dumps(ingestRoster("TESTING/OPH.xlsx", "Samuel Riley", "C", datetime.strptime("2023-02-13", "%Y-%m-%d"), datetime.strptime("2023-02-26", "%Y-%m-%d")), indent=4))
 
+
+# TODO - re-write this entire function using Regex (will be a LOT shorter). I am dumb.
 def ingestPDF(fileName):
 	payPeriodLength = 14
 	#Payslip Dictionary (the end product of ingesting the payslip)

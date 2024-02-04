@@ -17,12 +17,11 @@ Covers the following functions within `payroll.py`
 **Arguments**
 
 - `rosterDict` (dictionary) - contains a set of dates and shift-times. (see output from ingestRoster())
+- `debug` (Boolean) - show a plethora of print statements to assist debugging.
 
 **Output**
 
-Outputs a dictionary, where keys are dates and values are a list of all "hour-types" (BASE HOURS, OVERTIME @ 1.5) that occurred on that day. Each of the entries in the list is a object (dict) that has all the attributes you might want - description, units, rate, total amount for that hour-type.
-
-This dictionary is then wrapped with more meta-information by app.py
+Outputs a dictionary, where keys are dates and values are a list of all "hour-types" (e.g. BASE HOURS, OVERTIME @ 1.5) that occurred on that day. Each of the entries in the list is a object (dict) that has attributes such as description, units, rate, and total amount for that hour-type.
 
 Generic form:
 
@@ -82,19 +81,13 @@ Example:
 
 This function relies on a lot of idiosyncratic rules that are different for different employers. They define when overtime is paid, what value penalties are given for which periods, when public holidays are and how they are paid.
 
-NORTH METRO HEALTH SERVICE:
-- 
+For this version I used: [Medical practitioners AMA industrial agreement 2022](https://www.health.wa.gov.au/~/media/Corp/Documents/Health-for/Industrial-relations/Awards-and-agreements/Doctors/Medical-practitioners-AMA-industrial-agreement-2022.pdf)
 
-**Helper functions**
+For reference of public holidays in WA I used the document above, as well as [Dept. Commerce - Public holidays in Western Australia](https://www.commerce.wa.gov.au/labour-relations/public-holidays-western-australia)
 
 **Algorithm**
 
-Checkpoints are (ideally) a way to genericise the code for payroll logic so it can be applied to different health services with only modification of a .yaml or other file.
+See payroll-algorithm.md
 
-Checkpoints are datetime objects at constant points throughout a day and delineate when there is a change in penalties paid during a day/week.
+**Helper functions**
 
-Example (for North Metro Health Service):
-
-WEEKDAYS:
-HOURS:      |0000       0800      1200     1800      2359|
-CHECKPOINT? |  20% pens   X      0% pens    X    25% pens|
