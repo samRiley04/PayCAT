@@ -127,6 +127,16 @@ def getCorrectOTRates(hoursWorkedAlready, hoursAmount, debug):
 		print("no OT required with given values. alreadyWorked: " + str(hoursWorkedAlready) + ", hoursAmount: " + str(hoursAmount))
 	return returnValues
 
+def getCorrectPenRates(START_SHIFT_TIME, anchorBack):
+	testRate = None
+	if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
+		testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
+		desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+	else:
+		testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
+		desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
+	return testRate
+
 def tidyAndCollatePensList(pensList):
 	uniq = []
 	for entry in pensList:
@@ -158,6 +168,7 @@ def expandForBaseHours(pensList):
 # VERY IMPORTANT NOTE: this function ASSUMES the roster given contains shifts worked over a fortnight!.
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
 def analyseRoster(rosterDict, debug=False):
+	# -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE
 	#rosterDict = {"2023-01-30": "0800-1900"}
 	tempDict = {}
 	returnDict = {}
@@ -244,6 +255,8 @@ def analyseRoster(rosterDict, debug=False):
 		replace.update({key:tempDict[key]})
 	tempDict = replace
 
+	# -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO	
+
 	runningHoursTotal = 0 #used exclusively to keep track of when OT must be enacted.
 	#NOW take each shift, and create a list of penalties, how many hours they apply to, and the description of that data.
 	#Call that list pensList (its declared later on.)
@@ -286,6 +299,10 @@ def analyseRoster(rosterDict, debug=False):
 			for x in checkpoints:
 				#print(x.strftime("%dth - %H%M"))
 				print(x)
+
+	# -------- SECTION THREE -------- SECTION THREE -------- SECTION THREE -------- SECTION THREE -------- SECTION THREE  -------- SECTION THREE -------- SECTION THREE
+	
+
 		#Now calculate hours intervals using a worm-crawling approach.
 		anchorBack = None
 		pensList = []
@@ -324,15 +341,25 @@ def analyseRoster(rosterDict, debug=False):
 							rate = 1
 							desc = DESCRIPTORS_SHIFTS_ALL["PHO1"]
 							# This 'if' is only placed once as PH shifts will always have START_TIME and END_TIME sequential, as theres' only one checkpoint at 0000. (assumption B)
+						testRate = None
+						try: #Try to see if the start time is also a valid penalty rate checkpoint.
+							if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
+								testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
+								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+							else:
+								testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
+								desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
+						except KeyError as e:
+							pass # This will occur when the start time is not an actual penalty checkpoint.
+							# If it does occur, the rate will have already been set by the loop the previous time (see the most outer else:)
+						if not (testRate is None):
+							rate = testRate
+
 					pensList.append({"rate":rate, "hours":hrs, "desc":desc})
 					#We need not iterate further, as we have reached endshifttime.
 					break
 				else:
-
-					# ----------------------------- UP TO HERE!!!! 'if not anchorBack == START_SHIFT_TIME' needs to go.
-					# ----------------------------- UP TO HERE!!!! It doesn't account for when the start time is the same as a checkpoint!! WTF.
-
-					# So the anchor must be on a checkpoint then.
+					# So the anchor must be on a checkpoint then (or starttime).
 					#creates timedelta obj
 					hrs = float((anchorFront - anchorBack).seconds/3600)
 					# This will override the rate no matter what (if there are overtime hours)
@@ -346,6 +373,20 @@ def analyseRoster(rosterDict, debug=False):
 						else:
 							rate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 							desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
+					else:
+						testRate = None
+						try: #Try to see if the start time is also a valid penalty rate checkpoint.
+							if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
+								testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
+								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+							else:
+								testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
+								desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
+						except KeyError as e:
+							pass # This will occur when the start time is not an actual penalty checkpoint.
+							# If it does occur, the rate will have already been set by the loop the previous time (see the most outer else:)
+						if not (testRate is None):
+							rate = testRate
 					pensList.append({"rate":rate, "hours":hrs, "desc":desc})
 					# Prepare to move the anchor onwards sailor.
 					anchorBack = anchorFront	
@@ -361,6 +402,8 @@ def analyseRoster(rosterDict, debug=False):
 		if debug:
 			print({shift:pensList})
 
+	# -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR
+
 		#ENSURE OT is factored in. (pens will be wrong if we breach the overtime hours limit and don't record the rate as the OT rate.)
 		# If we have already breached the rate OR we will with the addition of this shift.
 		shiftHrsDuration = (END_SHIFT_TIME - START_SHIFT_TIME).seconds/3600
@@ -375,7 +418,9 @@ def analyseRoster(rosterDict, debug=False):
 					if penaltyEntry["hours"] <= remainingHours:
 						# No more OT logic to be done as we know this penalty entry isnt large enough to breach the OT threshhold, so just move on.
 						# We haven't fiddled with the pensList but these 'skipped' hours have still been parsed/counted, so must add them to the running total.
+						# They pass through to the tempPensList unperturbed.
 						runningHoursTotal += penaltyEntry["hours"]
+						tempPensList.append({"rate":penaltyEntry["rate"], "hours":penaltyEntry["hours"], "desc":penaltyEntry["desc"]})
 						continue
 					# Only reach this point if the current penaltyEntry has to be split up
 					# I.e. if there are remaining hours, and the current entry has more than that amount to ingest/parse.
@@ -413,6 +458,8 @@ def analyseRoster(rosterDict, debug=False):
 		if debug:
 			print("runningHoursTotal = " + str(runningHoursTotal))
 
+	# -------- SECTION FIVE -------- SECTION FIVE -------- SECTION FIVE -------- SECTION FIVE -------- SECTION FIVE -------- SECTION FIVE -------- SECTION FIVE
+
 		# TIDY up and collate the penalty list for that day.
 		# Condense penslist to only one entry per rate, collating hours along the way.
 		pensList = tidyAndCollatePensList(pensList)
@@ -444,9 +491,9 @@ def analyseRoster(rosterDict, debug=False):
 					"amount":str(round(rateProper*entry["hours"],2))
 				})
 		returnDict.update({shift.strftime("%d-%m-%Y"):pensListProper})
-	
-	print("INGESTED ROSTER. OUTPUT:")
-	print(json.dumps(returnDict, indent=2))
+	if debug:
+		print("INGESTED ROSTER. OUTPUT:")
+		print(json.dumps(returnDict, indent=2))
 	return returnDict
 
 
@@ -454,7 +501,7 @@ def analyseRoster(rosterDict, debug=False):
 
 
 test = {
-    "2024-12-20": "0800-1630"
+    "2024-12-19": "1800-0800"
 }
 """
 test = {
@@ -471,7 +518,7 @@ test = {
     "2023-02-11": "2245-0845"
 }"""
 
-analyseRoster(test, debug=True)
+#analyseRoster(test, debug=True)
 
 
 

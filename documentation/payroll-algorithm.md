@@ -1,10 +1,23 @@
 # analyseRoster Algorithm
 
+**Contents**
+
+- [Overview](#overview)
+- [Global Variables](#global-variables)
+- [analyseRoster - Overview](#analyseroster---overview)
+- [analyseRoster - Preparation](#analyseroster---preparation)
+- [analyseRoster - Checkpoints](#analyseroster---checkpoints)
+- [analyseRoster - Creating pensList](#analyseroster---creating-penslist)
+- [analyseRoster - Overtime](#analyseroster---overtime)
+- [analyseRoster - Tidy Up](#analyseroster---tidy-up)
+
 ## Overview
 
 This is a very complex function. You could argue it should be broken into more components to aid readability, but I was honestly not able to do better than I have done already. If you are reading this and your name isn't Sam, prepare yourself.
 
 (I maintain that there is only ONE hacky workaround in this package.)
+
+This is essentially replicating the logic that exists in HSS/Payroll's backend, used to calculate how much to pay you once being told your hours worked.
 
 **Assumptions**
 - You work 1FTE.
@@ -71,11 +84,9 @@ e.g.
 }
 ```
 
-**Contents**
-
-todo
-
 ## Global Variables
+
+Explanation of globally declared variables used in this package.
 
 **To aid in selecting descriptions for certain pay rates:**
 - `DESCRIPTORS_SHIFTS_PENS` (dict) - keys are used programmatically. Entries should be in the format "rate":"description" (e.g. "1.2":"PENALTIES AT 20%"). Prepend PH for public holiday descriptions.
@@ -90,7 +101,7 @@ The differentiation between pens and non-pens descriptors is intentional. These 
 - `PENALTY_RATES` (dict) - keys are used programatically. Entries should be in the format "Day of the week":(object), where the object contains entries in the format "cutoff":rate(float). Cutoff means "after this hour in a day, apply this penalty rate".
 - `PENALTY_RATES_PH_GENERIC` (dict) - keys are used programatically. As above, except instead of a cutoff value keys are an offset value. Offset means "this many days after a public holiday, use this penalty rates object."
 - `PENALTY_RATES_PH` (dict) keys are used programatically. As above. This dict is filled dynamically with reference to `PENALTY_RATES_PH_GENERIC`.
-- `PUBLIC_HOLIDAYS` (dict) keys are used programatically. As above. This dict is filled dynamically by `generatePublicHolidays()`
+- `PUBLIC_HOLIDAYS` (dict) keys are used programatically. As above. This dict is filled dynamically by `generatePublicHolidays()` in the format (date object):"description".
 
 **Other variables:**
 - `WAGE_BASE_RATE` (float). Employee's base wage.
@@ -126,6 +137,7 @@ Summary of the steps in this function, in approximate order:
 ## analyseRoster - Preparation
 
 Notes on steps **1-3**.
+In code comments, marked as Section One
 
 - `rangeLower` and `rangeUpper` are used to ensure the 'day-after' in nightshifts aren't missed. 
 - Some parts of this code section are not used, but I am too scared to remove them.
@@ -135,7 +147,8 @@ Notes on steps **1-3**.
 
 ## analyseRoster - Checkpoints
 
-Refers to steps **4-?**.
+Refers to steps **4-5(i)**.
+In code comments, marked as Section Two.
 
 Checkpoints are (ideally) a way to genericise the code for payroll logic so it can be applied to different health services with only modification of a dictionary, and not logic.
 
@@ -147,8 +160,43 @@ HOURS:      |0000       0800      1200     1800      2359|
 CHECKPOINT? |  20% pens   |      0% pens     |   25% pens|
 ```
 
+They are specific for the shift day, as they each include the date the shift occurs on (not just the times), and as such must be created dynamically for each shift worked. This is ideal, because actually not every shift will have a standard set of rates - sometimes public holidays are involved.
+
 Other notes:
 - `daysToCheck` list is used to ensure nightshifts work. As mentioned in (5)(i), they cover two days but are one shift.
-- When referring to `PENALTY_RATES` and `PENALTY_RATES_PH`, note that the latter uses keys of (datetime date) objects, and the former uses (string)s representing days of the week.
 
+## analyseRoster - Creating `pensList`
+
+Refers to step **5(ii)**. In code comments, marked as Section Three.
+
+This whole section works and every time I try to optimise it, it stops working correctly. So it stays bloated.
+
+I've settled on this approach to deconstructing a shift into it's components of different penalty rates, but there may be other better ways.
+
+In summary, the two "anchor" method is just a way to visualise breaking the whole shift down into blocks delineated by the entries in the checkpoints list (as in the above section).
+
+When debugging errors in this section, I find that working through it with paper and a pen writing pseudocode is very helpful. It has mostly lead to me creating this abomnination however, so take that with a grain of salt.
+
+Other notes:
+- When referring to `PENALTY_RATES` and `PENALTY_RATES_PH`, note that the latter uses keys of (datetime date) objects, and the former uses (string)s representing days of the week.
+- Note that the start and end shift times are only added as checkpoints when they would NOT be a duplicate with a penalty-rate checkpoint.
+- In this section we account for a 'futile shift'. This is where you work on a public holiday for a very short amount of hours. You typically get 2.5x base for PH shifts, but in these 'futile' circumstances, this rate actually comes out to LESS than you would have earned if you didn't work, and got paid the public holiday observed rate (1x base). This can be calculated easily, and is done so here - `USUAL_HOURS/PH_TOTAL_RATE`. Where `USUAL_HOURS` is the hours you would work on "an ordinary working day", as this is how the Award defines what PH observed should be paid as. PH_TOTAL_RATE is the total multiplier applied to base rate, 2.5 as before. You can see that if you work ED and your usual hours are 10-hour shifts, you are only able to "tolerate" a shift as short as 4 hours before it's not worth coming in. (This is also a judgement decision, I'd rather get paid and not come in than come in and work 4 hours - I still had to come into work).
+
+## analyseRoster - Overtime
+
+Refers to steps **5(iii) and (iv)**. In code comments, marked as Section Four.
+
+Broadly: at some point in this shift, you know you will cross the overtime hours threshold. Step through the list of penalty rates/hours objects, and check if they will bring you over the limit by checking hour quantity. If not, pass them through to the 'finalised' dictionary `tempPensList` unadulterated.
+
+If they will bring you over, first add an entry with the remaining pre-OT hours at the original rate. Because no assumptions are made about potential shift length, it's entirely possible a single shift could cross multiple OT rate marks. (Practically impossible in WA, no one would every get paid to work 41 hours straight.) Regardless, the functionality is there - the different "strata" (aka what OT rates apply to what hour ranges) are stepped through and hours remaining in the shift object are allocated appropriately.
+
+Other notes:
+- I think this section is well designed.
+- this section uses the helper function `getCorrectOTRates()`. 
+
+## analyseRoster - Tidy Up
+
+Refers to steps **5(v)-(viii)**. In code comments, marked as Section Five.
+
+Yadda yadda yadda you don't stop yappin
 

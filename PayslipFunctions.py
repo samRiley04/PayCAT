@@ -262,8 +262,7 @@ def dateValidTypeC(cell, sheet):
 
 # RETURN ERRORS
 # ValueError - "employee name not found", "recognisable dates not found"
-def ingestRoster(fileName, findName, rosterFormat, startDate, endDate):
-	debug = False
+def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, debug=False):
 	outputDict = {}
 	wb = load_workbook(fileName, data_only=True)
 	sheet = wb.active
@@ -286,7 +285,7 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate):
 	return outputDict
 
 
-print(json.dumps(ingestRoster("TESTING/OPH.xlsx", "Samuel Riley", "C", datetime.strptime("2023-02-13", "%Y-%m-%d"), datetime.strptime("2023-02-26", "%Y-%m-%d")), indent=4))
+#print(json.dumps(ingestRoster("TESTING/OPH.xlsx", "Samuel Riley", "C", datetime.strptime("2023-02-13", "%Y-%m-%d"), datetime.strptime("2023-02-26", "%Y-%m-%d")), indent=4))
 
 
 # TODO - re-write this entire function using Regex (will be a LOT shorter). I am dumb.
