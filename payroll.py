@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import json
 import holidays
+import locale
+locale.setlocale(locale.LC_ALL, '')
 
 """
 rosterDict = {
@@ -55,8 +57,8 @@ PUBLIC_HOLIDAYS = {} #Created later by generatePublicHolidays()
 
 WAGE_BASE_RATE = 42.3298
 USUAL_HOURS = 8 #Used for PH observed calculation.
-PH_TOTAL_RATE = 2.5 #This is used to calculate the cutoff for a 'futile' shift on a PH (i.e. one where working a small amount of hours at PH rate earns you less than simply not working and getting the observed base rate)
-HOURS_BEFORE_OVERTIME = 80
+PH_TOTAL_RATE = PENALTY_RATES_PH_GENERIC["0"]["0000"] #This is used to calculate the cutoff for a 'futile' shift on a PH (i.e. one where working a small amount of hours at PH rate earns you less than simply not working and getting the observed base rate)
+HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
 #ON CALL (in $ not a multipler)
 JMO_ON_CALL_HOURLY = 12.22
 
@@ -472,23 +474,30 @@ def analyseRoster(rosterDict, debug=False):
 			# Make sure to record penalties correctly by separating base hours and penalty rate values
 			if entry["desc"] in DESCRIPTORS_SHIFTS_PENS.values():
 				#Just have to modify the rate before continuing.
-				rateProper = (entry["rate"]-1)*WAGE_BASE_RATE
+				rateProper = round((entry["rate"]-1)*WAGE_BASE_RATE,4)
+				#zero padding the rate to 4 places after decimal point.
+				s = str(rateProper).split(".")
+				rateProperPadded = ".".join((s[0], s[1].ljust(4,"0")))
 				dirtyAmountSum += rateProper*entry["hours"]
 				pensListProper.append({
 					"description":entry["desc"],
 					"units":str(entry["hours"]),
-					"rate":str(round(rateProper,4)),
-					"amount":str(round(rateProper*entry["hours"], 2))
+					"rate":rateProperPadded,
+					"amount":locale.currency(rateProper*entry["hours"], symbol=False)
 				})
 			else:
 				#Add as per usual
-				rateProper = entry["rate"]*WAGE_BASE_RATE
+				rateProper = round(entry["rate"]*WAGE_BASE_RATE,4)
+				s = str(rateProper).split(".")
+				rateProperPadded = ".".join((s[0], s[1].ljust(4,"0")))
+
+
 				dirtyAmountSum += rateProper*entry["hours"]
 				pensListProper.append({
 					"description":entry["desc"],
 					"units":str(entry["hours"]),
-					"rate":str(round(rateProper,4)),
-					"amount":str(round(rateProper*entry["hours"],2))
+					"rate":rateProperPadded,
+					"amount":locale.currency(rateProper*entry["hours"], symbol=False)	
 				})
 		returnDict.update({shift.strftime("%d-%m-%Y"):pensListProper})
 	if debug:

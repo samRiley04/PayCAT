@@ -8,6 +8,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-5.3.2-dist/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
 
+        <!-- SCRIPTS -->
+    <script type="text/javascript" src="/static/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/custom.js"></script>
+
+    <script src="{{ url_for('static', filename='popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js') }}"></script>
+
+    <script type="text/javascript">
+      // NOT CURRENTLY WORKING:
+      const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
+      const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl))
+    </script>
+
 
     <!--
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -15,12 +28,6 @@
 
   </head>
   <body>
-  
-
-<!-- SCRIPTS -->
-<script type="text/javascript" src="/static/jquery.min.js"></script>
-<script type="text/javascript" src="/static/custom.js"></script>
-
 
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
@@ -46,6 +53,11 @@
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">Export</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav mb-2 mb-md-0">
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="modal" data-bs-target="#settingsModal" role="button" onclick="loadExistingSettings()">Configure</a>
         </li>
       </ul>
     </div>
@@ -252,7 +264,7 @@
     
   </div>
 
-<!-- Modal -->
+<!-- Modals -->
 <div class="modal fade" id="newEntryModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -328,10 +340,81 @@
 </div>
   </div>
 </div>
+
+<div class="modal fade" data-bs-backdrop="true" data-bs-keyboard="true" id="settingsModal" tabindex="-2">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="container-fluid">
+          <div class='row p-0 justify-content-between'>
+            <div class="col p-0">
+              <h1 class="modal-title fs-3">Configure</h1>
+            </div>
+            <div class="col-auto p-0 align-self-center">
+              <button id="settingsClose" type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- MODAL FORM START -->
+        <div class="row px-2">
+          <div class="col">
+            <div class="alert alert-warning" id="settings-firsttime-alert" hidden role="alert">
+              As this is your first time using PayCAT, please enter to following values to proceed.
+            </div>
+          </div>
+        </div>
+        <div class="row px-2">
+          <div class="col me-4">
+            <label for="wage-base-rate-input" class="form-label">Base rate</label>
+            <div class="input-group mb-3">
+              <span class="input-group-text">$</span>
+              <input id="wage-base-rate-input" type="text" class="form-control">
+              <span class="input-group-text rounded-end-2">/ hr</span>
+              <div id="wage-base-rate-invalidDP" class="invalid-feedback" hidden>
+                Please ensure 4 decimal places are recorded.
+              </div>
+              <div id="wage-base-rate-invalidFormat" class="invalid-feedback" hidden>
+                Please enter a valid number.
+              </div>
+              <div class="form-text">
+                Your base rate is listed on your payslip. It is your pay rate per hour, to four decimal places.
+              </div>
+            </div>
+          </div>
+          <div class="col ms-4">
+            <label for="wage-base-rate-input" class="form-label">Usual hours</label>
+            <!--<button class="btn btn-secondary fw-light text-secondary" type="button" data-bs-container="body" data-bs-toggle="popover" data-bs-title="CJhh" data-bs-content="A name jere">(?)</button> -->
+            <div class="input-group mb-3">
+              <input id="usual-hours-input" type="text" class="form-control" aria-label="Amount (to the nearest dollar)">
+              <span class="input-group-text rounded-end-2">hours</span>
+              <div id="usual-hours-invalidFormat" class="invalid-feedback" hidden>
+                Please enter the amount of hours you work in a normal shift as a whole number.
+              </div>
+              <div id="usual-hours-invalidSemantically" class="invalid-feedback" hidden>
+                That doesn't seem like it would be considered your 'usual hours'.
+              </div>
+              <br>
+              <div class="form-text" id='fuckaround'>
+                Your usual hours is defined as the amount of hours you would work on "an ordinary working day".
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="settingsCloseLowbutton" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="settings-save-button" class="btn btn-primary" onclick="submitSettings('settingsModal')">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
     
 <script type="text/javascript">displayNoSelection(); updateSidebarList()</script>
 
-    <script src="{{ url_for('static', filename='bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js') }}"></script>
     <!--
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     -->

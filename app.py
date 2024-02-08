@@ -2,6 +2,7 @@ import flask
 from flask import Flask, redirect, url_for, render_template, flash, request, session, send_from_directory, current_app
 from flask_restful import Resource, Api, reqparse, inputs
 from multiprocessing import Process, Queue
+from datetime import datetime, timedelta
 
 import logging
 import webbrowser
@@ -12,6 +13,7 @@ import os
 
 #My files.
 import PayslipFunctions as pFx
+import payroll
 import utilities as ut
 
 # Initialise
@@ -26,10 +28,23 @@ logging.basicConfig(filename='server.log', level=logging.DEBUG, format='%(asctim
 api = Api(app)
 #SHELF
 SHELF_NAME = "PayCAT-shelf"
+SHELF_NAME_SETTINGS = SHELF_NAME+"-settings"
 with shelve.open(SHELF_NAME, writeback=True) as shlf:
 	if not "_NEXT_ID" in shlf:
 		shlf["_NEXT_ID"] = 1
+
+with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
+	if not "WAGE_BASE_RATE" in shlf:
+		shlf["WAGE_BASE_RATE"] = None
+	if not "USUAL_HOURS" in shlf:
+		shlf["USUAL_HOURS"] = None
 #?Do YAML config.
+
+def isConfigDone():
+	with shelve.open(SHELF_NAME_SETTINGS) as shlf:
+		if (shlf["WAGE_BASE_RATE"] is None) or (shlf["USUAL_HOURS"] is None):
+			return False
+	return True
 
 @app.route("/")
 def home():
@@ -55,26 +70,12 @@ class PDFDataList(Resource):
 	# Get given a valid local filename, and then generate+store a psDict using that filename
 	# Return the psDict just created (would just be calling GET anyway.)
 	def post(self):
-		"""
-		#Dead On Arrival POST request - simply a cue to open the file picker locally.
-
-		#Unfortunately neccessary to create an entire subprocess just to use tkinter (as it *must* be run in the main process.)
-		#Then uses a Queue the file path back to the main process.
-		pdfNameLong = ""
-		if __name__ == "__main__":
-			q = Queue()
-			p = Process(target=ut.filePicker,args=(q,))
-			p.start()
-			pdfNameLong = q.get()
-			p.join()
-		# Check validity
-		if not pdfNameLong[-4:] == ".pdf":
+		# SAFETYCHECK
+		if not isConfigDone():
 			return {
 				"data":None,
-				"message":"Incorrect file type - pdfs only!"
-			}, 415
-		# Try to find the file.
-		"""
+				"message":"Settings not yet configured."
+			}, 503
 		parser = reqparse.RequestParser()
 		parser.add_argument("filePath")
 		parser.add_argument("mode")
@@ -89,7 +90,24 @@ class PDFDataList(Resource):
 		# CREATE VIEW MODE ---
 		if parsed_args["mode"] == "view":
 			try:
-				shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
+				if parsed_args["filePath"].endswith(".pdf"):
+					shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
+				elif parsed_args["filePath"].endswith(".xlsx"):
+					parsed_args["employeeName"] = "Samuel Riley"
+					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], "C", datetime.strptime("2023-01-30", "%Y-%m-%d"), datetime.strptime("2023-02-12", "%Y-%m-%d")))
+					shelfEntry = {
+						"employeeName": parsed_args["employeeName"],
+						"employer": "Unknown",
+						"totalPretaxIncome": ut.deepSumAmounts(dataDict),
+						"payPeriodStart": "30-01-2023",
+						"payPeriodEnding": "12-02-2023",
+						"data": dataDict
+					}
+				else:
+					return {
+						"data": None,
+						"message": "Wrong filetype. Accepts .pdf and .xlsx only at this stage."
+					}, 422
 				#Shed the leading directories
 				fileNameShort = parsed_args["filePath"].split('/')[-1]
 				newlyMadeID = None
@@ -152,6 +170,13 @@ class PDFData(Resource):
 		}, 200
 
 	def delete(self, pdfID):
+		# SAFETYCHECK
+		if not isConfigDone():
+			return {
+				"data":None,
+				"message":"Settings not yet configured."
+			}, 503
+			
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
 			if pdfID in shlf:
 				shlf.pop(pdfID)
@@ -183,6 +208,49 @@ class FilePath(Resource):
 		}, 200
 
 api.add_resource(FilePath, "/api/FilePath")
+
+class Settings(Resource):
+	def get(self):
+		toReturn = {}
+		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
+			toReturn.update({
+				"wage-base-rate":shlf["WAGE_BASE_RATE"],
+				"usual-hours":shlf["USUAL_HOURS"]
+				})
+		return {
+			"data":toReturn,
+			"message":"Success"
+		}, 200
+
+	def post(self):
+		parser = reqparse.RequestParser()
+		parser.add_argument("wage-base-rate")
+		parser.add_argument("usual-hours")
+		parsed_args = parser.parse_args()
+		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
+			wrong = {}
+			if not (parsed_args["wage-base-rate"] is None) and parsed_args["wage-base-rate"].replace('.','').isnumeric():
+				shlf["WAGE_BASE_RATE"] = float(parsed_args["wage-base-rate"])
+			else:
+				wrong.update({"Wage base rate":parsed_args["wage-base-rate"]})
+			if not (parsed_args["usual-hours"] is None) and parsed_args["usual-hours"].isnumeric():
+				shlf["USUAL_HOURS"] = float(parsed_args["usual-hours"])
+			else:
+				wrong.update({"Usual hours":parsed_args["usual-hours"]})
+		if not wrong == {}:
+			returnS = "The following inputs were invalid: "
+			for k,i in wrong.items():
+				returnS += k + " (\'"+str(i)+"\'), "
+			return {
+				"data":None,
+				"message":returnS[:-2] #trims last comma and space
+			}
+		return {
+			"data":None,
+			"message":"Successfully updated settings."
+		}, 200
+
+api.add_resource(Settings, "/api/settings")
 
 #--------------------------------
 

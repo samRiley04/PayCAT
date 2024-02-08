@@ -262,7 +262,7 @@ def dateValidTypeC(cell, sheet):
 
 # RETURN ERRORS
 # ValueError - "employee name not found", "recognisable dates not found"
-def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, debug=False):
+def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHidden=True, debug=False):
 	outputDict = {}
 	wb = load_workbook(fileName, data_only=True)
 	sheet = wb.active
@@ -412,4 +412,4 @@ def ingestPDF(fileName):
 	
 	
 
-#ingestPDF("test.pdf")
+#print(json.dumps(ingestPDF("test.pdf"), indent=4))

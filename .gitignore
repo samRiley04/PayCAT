@@ -13,3 +13,5 @@ test-OPH.py
 test-payroll.py
 jeff.py
 bigtest.py
+PayCAT-shelf-settings.db
+static/.DS_Store

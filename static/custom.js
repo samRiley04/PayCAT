@@ -23,8 +23,10 @@
 // -- #noContent - basic no content jumbotron.
 
 let selectedSidebarEntry = null
+let validSettings = false
 
 // For creating new viewMode or compareMode entry()
+// FS means file select
 let viewModeFS1path = ""
 let compareModeFS1path = ""
 let compareModeFS2path = ""
@@ -53,7 +55,7 @@ function newViewmode() {
       updateSidebarList();
       clearFileSelect();
     }).fail(function (data) {
-      alert("failed to add PDF.")
+      alert("failed to add project.")
       //$('#card-container').html("<span class=\"fw-bold text-danger\">Failed to load PDF.</span>")
     });
 }
@@ -285,5 +287,144 @@ function fillFileSelect(fsID) {
 function displayNoSelection() {
   $('#content-column').html("")
   $('#content-column').html($('#template-storage > #noContent').clone().attr('id','noContent-clone'))
+}
+
+//SETTINGS
+function loadExistingSettings() {
+    if (validSettings) {
+      $("#settingsModal").attr("hidden", false)
+      $("#settingsModal").find("#settingsClose").attr("hidden", false)
+      $("#settingsModal").find("#settingsCloseLowbutton").attr("hidden", false)
+      $("#settingsModal").find("#settings-firsttime-alert").attr("hidden", true)
+      $("#settingsModal").attr("data-bs-backdrop", false) //These two not working for some reason???? TODO ***
+      $("#settingsModal").attr("data-bs-keyboard", true)
+    }
+
+    $.when($.ajax({
+    url: "http://localhost:8000/api/settings",
+    type: 'GET',
+    timeout: 4000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+    $("#settingsModal").find("#wage-base-rate-input").removeClass("is-invalid")
+    $("#settingsModal").find("#wage-base-rate-invalidDP").attr("hidden", true)
+    $("#settingsModal").find("#wage-base-rate-input").val(data["data"]["wage-base-rate"])
+    $("#settingsModal").find("#usual-hours-input").val(data["data"]["usual-hours"])
+    $("#settingsModal").find("#usual-hours-input").removeClass("is-invalid")
+  }).fail(function (data) {
+    alert("Failed to get settings. Message: "+data["message"]);
+  });
+}
+
+function submitSettings(modalID) {
+    //resetting validation
+    $("#"+modalID).find("#wage-base-rate-invalidFormat").attr("hidden", true)
+    $("#"+modalID).find("#wage-base-rate-invalidDP").attr("hidden", true)
+    $("#"+modalID).find("#wage-base-rate-input").removeClass("is-invalid")
+    $("#"+modalID).find("#usual-hours-input").removeClass("is-invalid")
+    $("#"+modalID).find("#usual-hours-invalidFormat").attr("hidden", true)
+    $("#"+modalID).find("#usual-hours-invalidSemantically").attr("hidden", true)
+
+    let wage = $("#"+modalID).find("#wage-base-rate-input").val().trim()
+    let usualhours = $("#"+modalID).find("#usual-hours-input").val().trim()
+    let abort = false
+    let checkREdigits = /^(\d+)\.(\d+)$/
+    let checkREfourDP = /^(\d+)\.(\d{4})$/
+    // Validate Base Rate input field. (regexes come out to: "digits.4 decimal places" only.)
+    if (!checkREdigits.test(wage)) {
+      $("#"+modalID).find("#wage-base-rate-input").addClass("is-invalid")
+      $("#"+modalID).find("#wage-base-rate-invalidFormat").removeAttr("hidden")
+      abort = true
+    } else if (!checkREfourDP.test(wage)) {
+      $("#"+modalID).find("#wage-base-rate-input").addClass("is-invalid")
+      $("#"+modalID).find("#wage-base-rate-invalidDP").removeAttr("hidden")
+      abort = true
+    }
+    let checkREdigitsonly = /^(\d+(\.0+)?)$/
+    let checkREuslhrs = /(^[2-9](\.0+)?$)|(^1[0-9](\.0+)?$)|(^2[0-4](\.0+)?$)/ //Accepts numbers 2 to 24 +/- ending in .00
+    let checkREendwithdec = /\.0+$/
+    // Validate Usual Hours input field.
+    if (!checkREdigitsonly.test(usualhours)) {
+      $("#"+modalID).find("#usual-hours-input").addClass("is-invalid")
+      $("#"+modalID).find("#usual-hours-invalidFormat").removeAttr("hidden")
+      abort = true
+    } else if (!checkREuslhrs.test(usualhours)) {
+      $("#"+modalID).find("#usual-hours-input").addClass("is-invalid")
+      $("#"+modalID).find("#usual-hours-invalidSemantically").removeAttr("hidden")
+      abort = true
+    } else if (checkREendwithdec.test(usualhours)) { //trim the .000000 however many zeroes.
+      usualhours = usualhours.split(".")[0]
+    }
+    if (abort) {return 0}
+
+    $.when($.ajax({
+    url: "http://localhost:8000/api/settings",
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      "wage-base-rate":wage,
+      "usual-hours":usualhours
+    }),
+    timeout: 4000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+      $("#"+modalID).modal('hide');
+      if (!validSettings) {
+        //Only really called once ever. If we are saving and this was the initial setting of config, remove that modal.
+        validSettings = true
+        $("#settingsModal").attr("hidden", false)
+        $("#settingsModalFirstTime").remove()
+      }
+  }).fail(function (data) {
+    alert("Failed to set settings. Message: "+data["message"]);
+  });
+}
+
+function confirmSettingsNotUnset() {
+  $.when($.ajax({
+    url: "http://localhost:8000/api/settings",
+    type: 'GET',
+    timeout: 4000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+    if (data["data"]["wage-base-rate"] == null || data["data"]["usual-hours"] == null) { //If user needs to set default settings.
+      validSettings = false;
+    } else {
+      validSettings = true;
+    }
+
+    if (!validSettings) {
+      //Modify the a new config modal to be un-closable.
+      $("body").append($("#settingsModal").clone().attr('id', 'settingsModalFirstTime'))
+      $("#settingsModal").attr("hidden", true)
+      $("#settingsModalFirstTime").find("#settingsClose").attr("hidden", true)
+      $("#settingsModalFirstTime").find("#settingsCloseLowbutton").attr("hidden", true)
+      $("#settingsModalFirstTime").find("#settings-firsttime-alert").attr("hidden", false)
+      $("#settingsModalFirstTime").find("#settings-save-button").attr("onclick", "submitSettings('settingsModalFirstTime')")
+      $("#settingsModalFirstTime").attr("data-bs-backdrop", "static")
+      $("#settingsModalFirstTime").attr("data-bs-keyboard", "false")
+      // Open the config modal.
+      $('#settingsModalFirstTime').modal('show');
+
+      // $("#settingsModal").find("#settingsClose").attr("hidden", true)
+      // $("#settingsModal").find("#settingsCloseLowbutton").attr("hidden", true)
+      // $("#settingsModal").find("#settings-firsttime-alert").attr("hidden", false)
+      // $("#settingsModal").attr("data-bs-backdrop", "static")
+      // $("#settingsModal").attr("data-bs-keyboard", "false")
+      // // Open the config modal.
+      // $('#settingsModal').modal('show');
+    }
+    return 1
+  }).fail(function (data) {
+    alert("Unable to load configuration from server. Message: "+data["message"]);
+  });
 
 }
+
+confirmSettingsNotUnset()
