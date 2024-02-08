@@ -31,6 +31,7 @@ let viewModeFS1path = ""
 let compareModeFS1path = ""
 let compareModeFS2path = ""
 
+
 function newViewmode() {
   if (viewModeFS1path == "") {
     //Tell user to select a file and abort
@@ -39,7 +40,7 @@ function newViewmode() {
   } 
   // Otherwise, submit a new POST for server to ingest an entry.
   $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData",
+      url: "http://localhost:8000/api/studydata",
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
@@ -74,7 +75,7 @@ function newComparemode() {
 
   // Otherwise, submit a new POST for server to ingest an entry.
   $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData",
+      url: "http://localhost:8000/api/studydata",
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
@@ -99,7 +100,7 @@ function newComparemode() {
 //Refreshes the sidebar (which displays all payslips stored in the local shelf DB.)
 function updateSidebarList() {
   $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData",
+      url: "http://localhost:8000/api/studydata",
       type: 'GET',
       timeout: 4000,
       headers: {
@@ -110,21 +111,41 @@ function updateSidebarList() {
       $('#side-bar-listgroup').html($('#template-storage > #side-bar-header').clone().attr('id', 'side-bar-header-clone'))
       for (entryID in data["data"]) {
         //for each entry in the shelf database, create a new entry in the sidebar
+        let newID = String(entryID)+"-entry"
         if (data["data"][entryID]["mode"] == "view") {
-          $('#side-bar-listgroup').append($('#template-storage > #side-bar-view').clone().attr('id',String(entryID)+"-entry"))
-          $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").find("#file-title").text(data["data"][entryID]["name"])
-          $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").find("#sbv-delbutton").attr('onclick', "deleteSidebarEntry("+entryID+"); event.stopPropagation();")
-          $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").attr('onclick', "selectSidebarEntry("+entryID+")")
+          $('#side-bar-listgroup').append($('#template-storage > #side-bar-view').clone().attr('id',newID))
+          $('#side-bar-listgroup').find('#'+newID).find("#file-title").text(data["data"][entryID]["name"])
+          $('#side-bar-listgroup').find('#'+newID).find("#sbv-delbutton").attr('onclick', "deleteSidebarEntry("+entryID+"); event.stopPropagation();")
+          $('#side-bar-listgroup').find('#'+newID).attr('onclick', "selectSidebarEntry("+entryID+")")
         } else if (data["data"][entryID]["mode"] == "compare") {
-          alert("compare")
+          let file1 = "jeff.pdf";
+          let file2 = data["data"][entryID]["name"];
+          $('#side-bar-listgroup').append($('#template-storage > #side-bar-compare').clone().attr('id',newID))
+          //FILE 1
+          $('#side-bar-listgroup').find("#"+newID).find("#f1-title").text(file1)
+          if (file1.endsWith(".pdf")) {
+            $('#side-bar-listgroup').find("#"+newID).find("#f1-file-icon").attr("hidden", false)
+          } else if (file1.endsWith(".xlsx")) {
+            $('#side-bar-listgroup').find("#"+newID).find("#f1-roster-icon").attr("hidden", false)
+          };
+          //FILE 2
+          $('#side-bar-listgroup').find("#"+newID).find("#f2-title").text(file2)
+          if (file2.endsWith(".pdf")) {
+            $('#side-bar-listgroup').find("#"+newID).find("#f2-file-icon").attr("hidden", false)
+          } else if (file2.endsWith(".xlsx")) {
+            $('#side-bar-listgroup').find("#"+newID).find("#f2-roster-icon").attr("hidden", false)
+          };
+          //buttons
+          $('#side-bar-listgroup').find('#'+newID).find("#sbv-delbutton").attr('onclick', "deleteSidebarEntry("+entryID+"); event.stopPropagation();")
+          $('#side-bar-listgroup').find('#'+newID).attr('onclick', "selectSidebarEntry("+entryID+")")
         }
         // Is selected?
-        if (entryID+"-entry" == selectedSidebarEntry) {
-          $('#side-bar-listgroup').find('#'+String(entryID)+"-entry").addClass("bg-primary-subtle")
+        if (newID == selectedSidebarEntry) {
+          $('#side-bar-listgroup').find('#'+newID).addClass("bg-primary-subtle")
         }
       }
     }).fail(function (data) {
-      alert("Failed filling sidebar");
+      alert("Failed filling sidebar. Message: " + data["message"]);
     });
 }
 
@@ -142,7 +163,7 @@ function selectSidebarEntry(pdfID) {
 function loadEntry(pdfID) {
   //GET information about it from the database, then fill it out in the main block.
     $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData/"+pdfID,
+      url: "http://localhost:8000/api/studydata/"+pdfID,
       type: 'GET',
       timeout: 4000,
       headers: {
@@ -197,12 +218,91 @@ function loadEntry(pdfID) {
           $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
         }
         //Record the heading entries
-        $('#'+newID+"-header").find("#viewMode-PPE").text("PPE " + data["data"]["payPeriodEnding"])
-        $('#'+newID+"-header").find("#viewMode-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
-        $('#'+newID+"-header").find("#viewMode-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
+        $('#'+newID+"-header").find("#header-PPE").text("PPE " + data["data"]["payPeriodEnding"])
+        $('#'+newID+"-header").find("#header-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
+        $('#'+newID+"-header").find("#header-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
       // --- For COMPARE-type entries: ---
       } else if (data["data"]["mode"] == "compare") {
-        alert("todo")
+        //ESSENTIALLY THE SAME SHIT, but twice
+        let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
+        //Clear the main container and add the new content type.
+        $('#content-column').html($("#template-storage").find("#compareMode-body").clone().attr("id",newID+"-body"))
+        // $('#content-column').html($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
+        let bodyID = "#"+newID+"-body";
+        //Then add the header.
+        if (data["data"]["name"].endsWith(".pdf")) {
+          $(bodyID).find("#card-container-left").append($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
+        } else if (data["data"]["name"].endsWith(".xlsx")) {
+          $(bodyID).find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header"))
+        }
+        if (data["data"]["name2"].endsWith(".pdf")) {
+          $(bodyID).find("#card-container-right").append($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
+        } else if (data["data"]["name"].endsWith(".xlsx")) {
+          $(bodyID).find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header"))
+        }
+        
+        //Readability:
+        todo = [{
+          "datesDict": data["data"]["data"],
+          "side":"left",
+          "fileName":data["data"]["name"]
+        }, {
+          "datesDict": data["data"]["data2"],
+          "side":"right",
+          "fileName":data["data"]["name2"]
+        }]
+        //Now iterate through the data in this entry and generate a card for each date.
+        for (whichever of todo) { 
+          for (date in whichever["datesDict"]) {
+            let side = whichever["side"]
+            //Clone a new card in the container, rename it's ID as the date, and remove hidden.
+            let cardID = side+"-"+date+"-card"
+            let templateID = ""
+            if (whichever["fileName"].endsWith(".pdf")) {
+              templateID = "#item-template-payslip"
+            } else if (whichever["fileName"].endsWith(".xlsx")) {
+              templateID = "#item-template-roster"
+            }
+            $('#content-column').find(bodyID).find("#card-container-"+side).append($(bodyID).find(templateID).clone().attr("id",cardID).removeAttr("hidden"))
+            //Uniqify the collapse IDs (generic)
+            //INTENTIONALLY CREATE DUPLICATE IDS HERE ! - entries with the same date should open and close together, thus should name them identically!
+            $('#content-column').find(bodyID).find('#'+cardID+" > .card-header").attr("href", "#"+date+"-collapse")
+            $('#content-column').find(bodyID).find('#'+cardID+" > .collapse").attr("id", date+"-collapse")
+            //Fill all the values in the card
+            //Date:
+            //TODO - 'from date' AND 'to date'.
+            $('#content-column').find(bodyID).find('#'+cardID).find("#item-date").text(date)       
+            //Now work through each contributing item (base hours, OT @ 1.5), filling the text and summing the total amount.
+            let sumAmount = 0
+            for (let i = 0; i < whichever["datesDict"][date].length; i++) {
+              let entry = whichever["datesDict"][date][i]
+              sumAmount += parseFloat(entry["amount"])
+              //'Item entries' are 'text/units+rate/amount' e.g. "BASE HOURS (12@43.223)      $123.45"
+              $(bodyID).find('#'+cardID).find("#item-entry-container").append($(bodyID).find('#'+cardID).find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
+              //Only if they're defined, fill units/rate
+              if (typeof entry["units"] !== 'undefined') {
+                $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").text("("+entry["units"] + "h @ $" + entry["rate"]+")")
+              } else {
+                $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").text("")            
+              }
+              //If units are negative, highlight this.
+              if (entry["units"] < 0) {
+                $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").addClass("text-danger-emphasis")
+              }
+              if (entry["amount"] < 0)  {
+                $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-amount").addClass("text-danger")
+              }
+              $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-description").text(entry["description"])
+              $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-amount").text("$"+entry["amount"])
+            }
+            //finally record the sum of all amounts
+            $(bodyID).find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
+          }
+        }
+        //Record the heading entries
+        $('#'+newID+"-header").find("#header-PPE").text("PPE " + data["data"]["payPeriodEnding"])
+        $('#'+newID+"-header").find("#header-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
+        $('#'+newID+"-header").find("#header-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
       } else {
         // ?? what else is there.
         alert("invalid type. Unable to load.")
@@ -214,7 +314,7 @@ function loadEntry(pdfID) {
 
 function deleteSidebarEntry(pdfID) {
   $.when($.ajax({
-      url: "http://localhost:8000/api/PDFData/"+String(pdfID),
+      url: "http://localhost:8000/api/studydata/"+String(pdfID),
       type: 'DELETE',
       timeout: 4000,
       headers: {
@@ -262,7 +362,7 @@ function clearFileSelect() {
 //fsID includes # already.
 function fillFileSelect(fsID) {
   $.when($.ajax({
-    url: "http://localhost:8000/api/FilePath",
+    url: "http://localhost:8000/api/filepath",
     type: 'GET',
     timeout: 160000,
     headers: {
@@ -428,3 +528,4 @@ function confirmSettingsNotUnset() {
 }
 
 confirmSettingsNotUnset()
+

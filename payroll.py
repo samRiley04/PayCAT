@@ -55,8 +55,8 @@ PENALTY_RATES_PH_GENERIC = {
 PENALTY_RATES_PH = {} #Created dynamically later.
 PUBLIC_HOLIDAYS = {} #Created later by generatePublicHolidays()
 
-WAGE_BASE_RATE = 42.3298
-USUAL_HOURS = 8 #Used for PH observed calculation.
+WAGE_BASE_RATE = None
+USUAL_HOURS = None #Used for PH observed calculation.
 PH_TOTAL_RATE = PENALTY_RATES_PH_GENERIC["0"]["0000"] #This is used to calculate the cutoff for a 'futile' shift on a PH (i.e. one where working a small amount of hours at PH rate earns you less than simply not working and getting the observed base rate)
 HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
 #ON CALL (in $ not a multipler)
@@ -169,7 +169,9 @@ def expandForBaseHours(pensList):
 
 # VERY IMPORTANT NOTE: this function ASSUMES the roster given contains shifts worked over a fortnight!.
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
-def analyseRoster(rosterDict, debug=False):
+def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
+	WAGE_BASE_RATE = wageBaseRate
+	USUAL_HOURS = usualHours
 	# -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE
 	#rosterDict = {"2023-01-30": "0800-1900"}
 	tempDict = {}

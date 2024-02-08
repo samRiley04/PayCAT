@@ -27,11 +27,13 @@
     -->
 
   </head>
-  <body>
-
+  <body style="background-color: var(--bs-gray-200)">
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
   <div class="container-fluid">
+    <button class="btn btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#side-bar-collapse">
+      <span class="navbar-toggler-icon"></span>
+    </button>
     <a class="navbar-brand" href="#"><b>PayCAT</b></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -64,31 +66,55 @@
   </div>
 </nav>
 <!-- Main container (body) -->
-<div class="container-fluid bg-body-secondary">
+<div class="container-fluid">
   <div class="row">
-
     <!-- SIDEBAR -->
-    <div class="col-3 gx-0">
-      <div class="list-group list-group-flush border border-2" id='side-bar-listgroup'>
-        <a href="" class="list-group-item bg-body-tertiary text-center">
-          <span class="fs-4 fw-semibold">Studies</span>
-        </a>
+    <div class="col-auto gx-0">
+      <div class="collapse collapse-horizontal show" id="side-bar-collapse">
+        <div class="list-group list-group-flush border border-2 p-0" id='side-bar-listgroup' style="width: 300px;"> <!-- forced width due to stuttering animation bug on horizontal collapsing. -->
+          <li class="list-group-item bg-body-tertiary" id="side-bar-header"> 
+            <span class="fs-4 fw-semibold">Studies</span>
+          </li>
+        </div>
 
       </div>
     </div>
+    <!-- Content column -->
+    <div class="col gx-3 p-2" id="content-column">
+    </div>
+  </div>
+</div>
 
-  <!-- Perma-hidden storage div for all templates -->
+<!-- Perma-hidden storage div for all templates -->
   <div hidden id="template-storage">
     
     <!-- #viewMode-header -->
-    <div class="bg-body-tertiary p-3 rounded" id="viewMode-header">
+    <div class="bg-body-tertiary p-3 rounded sam-payslip-theme border border-2" id="viewMode-header">
       <div class="row">
         <div class="col-auto">
-          <h1 class="fw-bold" id="viewMode-PPE">PPE DD-MM-YYYY</h1>
-          <span class="fw-light fst-italic" id="viewMode-name-employer">NAME / EMPLOYER</span>
+          <p class="h2 fw-bold" id="header-PPE">PPE DD-MM-YYYY</p>
+          <span class="fw-light fst-italic" id="header-name-employer">NAME / EMPLOYER</span>
+          <br>
+          <span class="fw-light fst-italic">PAYSLIP</span>
         </div>
         <div class="col-sm text-end">
-          <h1 class="text-success fw-bold" id="viewMode-totalPTI">$----.--</h1>
+          <p class="h2 text-success fw-bold" id="header-totalPTI">$----.--</p>
+          <span class="fw-light fst-italic">Taxable income this period</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEADER - roster -->
+    <div class="bg-body-tertiary p-3 rounded sam-roster-theme border border-2" id="roster-header">
+      <div class="row">
+        <div class="col-auto">
+          <p class="h2 fw-bold" id="header-PPE">PPE DD-MM-YYYY</p>
+          <span class="fw-light fst-italic" id="header-name-employer">NAME / EMPLOYER</span>
+          <br>
+          <span class="fw-light fst-italic">ROSTER</span>
+        </div>
+        <div class="col-sm text-end">
+          <p class="h2 text-success fw-bold" id="header-totalPTI">$----.--</p>
           <span class="fw-light fst-italic">Taxable income this period</span>
         </div>
       </div>
@@ -100,7 +126,7 @@
       <div class="col" id='card-container'>
         <!-- TEMPLATE CARD -->
         <div class="card my-1" id='item-template' hidden>
-          <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseID">
+          <div class="card-header sam-payslip-theme-light" role="button" data-bs-toggle="collapse" href="#collapseID">
             <div class="row">
               <div class="col">
                 <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
@@ -130,11 +156,12 @@
     </div>
 
     <!-- #compareMode - double card columns. -->
-    <div class="row py-2 mx-0">
-      <div class="col-6" id='card-container'>
-        <!-- TEMPLATE CARD -->
-        <div class="card my-1" id='item-template' hidden>
-          <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseID">
+    <div class="row py-2 mx-0" id="compareMode-body">
+      <!-- LEFT column -->
+      <div class="col-6" id='card-container-left'>
+        <!-- TEMPLATE CARDS -->
+        <div class="card my-1" id='item-template-payslip' hidden>
+          <div class="card-header sam-payslip-theme-light" role="button" data-bs-toggle="collapse" href="#collapseID">
             <div class="row">
               <div class="col">
                 <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
@@ -143,7 +170,34 @@
                 <span class="text-success fw-medium fs-4" id='item-total'>$--.--</span>
               </div>
             </div>
-          </div> 
+          </div>
+          <div class="collapse" id="collapseID">
+            <div class="card card-body py-2" id='item-entry-container'>
+              <div class="row align-items-center" id='item-entry' hidden>
+                <div class="col-auto">
+                 <span class="fw-light fs-6 fst-italic" id='item-description'>--</span>
+                </div>
+                <div class="col text-start">
+                  <span class="fw-lighter fs-6 fst-italic text-secondary" id='item-unitsrate'>(--.-- @ --.--)</span>
+                </div>
+                <div class="col-3 text-end">
+                <span class="fw-medium fs-6" id='item-amount'>$--.--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card my-1" id='item-template-roster' hidden>
+          <div class="card-header sam-roster-theme-light" role="button" data-bs-toggle="collapse" href="#collapseID">
+            <div class="row">
+              <div class="col">
+                <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
+              </div>
+              <div class="col text-end">
+                <span class="text-success fw-medium fs-4" id='item-total'>$--.--</span>
+              </div>
+            </div>
+          </div>
           <div class="collapse" id="collapseID">
             <div class="card card-body py-2" id='item-entry-container'>
               <div class="row align-items-center" id='item-entry' hidden>
@@ -161,52 +215,20 @@
           </div>
         </div>
       </div>
-      <!-- RIGHT column (roster card entries) -->
-      <div class="col-6">
-        <div class="card my-1" hidden>
-          <div class="card-header" role="button" data-bs-toggle="collapse" href="#1collapseExample">
-            <div class="row">
-              <div class="col">
-                <h5 class="card-title py-1">--</h5>
-              </div>
-              <div class="col text-end py-1">
-                <h5 class="text-success">$--</h5>
-              </div>
-            </div>
-          </div>
-          <div class="collapse" id="1collapseExample">
-            <div class="card card-body py-2">
-              <div class="row">
-                <div class="col align-self-center">
-                 <span class="fw-light fst-italic">--</span>
-               </div>
-               <div class="col text-end">
-                <span class="fw-light fst-italic">$--</span>
-               </div>
-              </div>
-              <div class="row">
-                <div class="col align-self-center">
-                 <span class="fw-light fst-italic">--</span>
-               </div>
-               <div class="col text-end">
-                <span class="fw-light fst-italic">$--</span>
-               </div>
-              </div>
-            </div>
-          </div>
-        </div>  
+      <!-- RIGHT column -->
+      <div class="col-6" id='card-container-right'>
       </div>
     </div>
 
     <!-- side-bar items (Compare and View) -->
 
         <!-- HEADER -->
-        <a href="" class="list-group-item bg-body-tertiary text-center" id="side-bar-header"> 
+        <li class="list-group-item bg-body-tertiary" id="side-bar-header"> 
           <span class="fs-4 fw-semibold">Studies</span>
-        </a>
+        </li>
 
         <!-- COMPARE -->
-        <a class="list-group-item text-left" id='side-bar-compare'>
+        <li class="list-group-item text-left" id='side-bar-compare' role="button">
           <div class="row py-1">
             <div class='col'>
               <span class="fs-5 fw-normal p-1">Compare</span>
@@ -216,18 +238,20 @@
             </div>
           </div>
           <div class="row">
-            <div class="col text-truncate text-body-tertiary">
-              <img src="{{ url_for('static', filename='/icons/file-earmark.svg') }}" style="opacity: 0.2"></img>
-              <span class="fw-light fs-6"> cgnm-603-71212312371238712874.pdf</span>
+            <div class="col text-truncate text-body-tertiary" id="icons-container">
+              <img id='f1-file-icon' hidden src="{{ url_for('static', filename='/icons/file-earmark.svg') }}" style="opacity: 0.2">
+              <img id='f1-roster-icon' hidden src="{{ url_for('static', filename='/icons/calendar3.svg') }}" style="opacity: 0.2">
+              <span id='f1-title' class="fw-light fs-6"></span>
               <br>
-              <img src="{{ url_for('static', filename='/icons/calendar3.svg') }}" style="opacity: 0.2">
-              <span class="fw-light fs-6">roster-adsasdasdasdasdassam-new.xlsx</span>
+              <img id='f2-roster-icon' hidden src="{{ url_for('static', filename='/icons/calendar3.svg') }}" style="opacity: 0.2">
+              <img id='f2-file-icon' hidden src="{{ url_for('static', filename='/icons/file-earmark.svg') }}" style="opacity: 0.2">
+              <span id='f2-title' class="fw-light fs-6"></span>
             </div>
           </div>
-        </a>
+        </li>
 
         <!-- VIEW -->
-        <a class="list-group-item text-left" id='side-bar-view' onclick="" role="button">
+        <div class="list-group-item text-left" id='side-bar-view' onclick="" role="button">
           <div class="row py-1">
             <div class='col'>
               <span class="fs-5 fw-normal p-1">View</span>
@@ -242,7 +266,7 @@
               <span class="fw-light fs-6" id="file-title"> ---.pdf</span>
             </div>
           </div>
-        </a>
+        </div>
 
     <!-- #noContent - jumbotron. -->
     <div class="container my-5 text-body-tertiary" id="noContent">
@@ -259,10 +283,6 @@
 
   </div>
 
-  <!-- Content column -->
-  <div class="col-lg gx-3 p-2" id="content-column">
-    
-  </div>
 
 <!-- Modals -->
 <div class="modal fade" id="newEntryModal" tabindex="-1">

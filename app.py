@@ -52,7 +52,7 @@ def home():
 
 # ------–––– API ------––––
 
-class PDFDataList(Resource):
+class studiesDataList(Resource):
 	def get(self):
 		returnDict = {}
 		# Essentially jsonify the entire shelf for transmitting.
@@ -94,7 +94,10 @@ class PDFDataList(Resource):
 					shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
 				elif parsed_args["filePath"].endswith(".xlsx"):
 					parsed_args["employeeName"] = "Samuel Riley"
-					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], "C", datetime.strptime("2023-01-30", "%Y-%m-%d"), datetime.strptime("2023-02-12", "%Y-%m-%d")))
+					with shelve.open(SHELF_NAME_SETTINGS) as shlf:
+						baseRate = shlf["WAGE_BASE_RATE"]
+						usualHours = shlf["USUAL_HOURS"]
+					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], "C", datetime.strptime("2023-01-30", "%Y-%m-%d"), datetime.strptime("2023-02-12", "%Y-%m-%d")), baseRate, usualHours)
 					shelfEntry = {
 						"employeeName": parsed_args["employeeName"],
 						"employer": "Unknown",
@@ -143,10 +146,10 @@ class PDFDataList(Resource):
 			}, 404
 
 
-api.add_resource(PDFDataList, "/api/PDFData")
+api.add_resource(studiesDataList, "/api/studydata")
 
-class PDFData(Resource):
-	def get(self, pdfID):
+class studyData(Resource):
+	def get(self, studyID):
 		"""# Validate.
 		if not pdfNameShort[-4:] == ".pdf":
 			return {
@@ -158,7 +161,7 @@ class PDFData(Resource):
 		# Retrieve that entry from the shelf if it exists.
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
 			try:
-				toReturn = shlf[pdfID]
+				toReturn = shlf[studyID]
 			except (KeyError):
 				return {
 					"data":None,
@@ -169,17 +172,17 @@ class PDFData(Resource):
 			"message":"Success"
 		}, 200
 
-	def delete(self, pdfID):
+	def delete(self, studyID):
 		# SAFETYCHECK
 		if not isConfigDone():
 			return {
 				"data":None,
 				"message":"Settings not yet configured."
 			}, 503
-			
+
 		with shelve.open(SHELF_NAME, writeback=True) as shlf:
-			if pdfID in shlf:
-				shlf.pop(pdfID)
+			if studyID in shlf:
+				shlf.pop(studyID)
 				return {
 					"data":None,
 					"message":"Success"
@@ -190,9 +193,9 @@ class PDFData(Resource):
 					"message":"Could not find file by that name."
 				}, 404
 
-api.add_resource(PDFData, "/api/PDFData/<string:pdfID>")
+api.add_resource(studyData, "/api/studydata/<string:studyID>")
 
-class FilePath(Resource):
+class filePath(Resource):
 	#Kinda counter intuitive - but GET the path because the application creates the file selector popup and gives the info back to the requester.
 	def get(self):
 		pickedPath = None
@@ -207,9 +210,9 @@ class FilePath(Resource):
 			"message":"Success"
 		}, 200
 
-api.add_resource(FilePath, "/api/FilePath")
+api.add_resource(filePath, "/api/filepath")
 
-class Settings(Resource):
+class settings(Resource):
 	def get(self):
 		toReturn = {}
 		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
@@ -250,7 +253,7 @@ class Settings(Resource):
 			"message":"Successfully updated settings."
 		}, 200
 
-api.add_resource(Settings, "/api/settings")
+api.add_resource(settings, "/api/settings")
 
 #--------------------------------
 
