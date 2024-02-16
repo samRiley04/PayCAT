@@ -7,6 +7,7 @@ from datetime import time
 from dateutil import parser
 import json
 import re
+import custom_exceptions as ex
 
 #Alerts - in the form [priority (HI/MED/LO), title, body]
 alerts = []
@@ -94,7 +95,7 @@ def ingestTypeB(sheet, findName, debug):
 						print("DISCARDING potential date: " + dateAttempt)
 	if len(tempDates) == 0:
 		#Found no recognisable dates in the roster
-		raise ValueError("No recognisable dates found in the roster.")
+		raise ex.NoRecognisedDates()
 	if debug:
 		print("tempDates: "+ str(tempDates))
 	# find NAME COLS
@@ -105,7 +106,7 @@ def ingestTypeB(sheet, findName, debug):
 				tempNameRows.append(cell.row)
 	if len(tempNameRows) == 0:
 		# Did not find a name.
-		raise ValueError("Employee name not found in roster. Is it spelled correctly?")
+		raise ex.NameNotFound()
 	# create outputDict
 	# Remember tempDates contains {DATES:cells}
 	if debug:
@@ -145,7 +146,7 @@ def ingestTypeC(sheet, findName, debug):
 				tempNameCols.append(cell.column_letter)
 	if len(tempNameCols) == 0:
 		#Found no recognisable name in the roster
-		raise ValueError("Employee name not found in roster. Is it spelled correctly?")	
+		raise ex.NameNotFound()
 	if debug:
 		print("tempNameCols: " + str(tempNameCols))
 	# find DATE ROWS (include the dates as well {"2":"2023-08-22"})
@@ -163,7 +164,7 @@ def ingestTypeC(sheet, findName, debug):
 						print("DISCARDING potential date: " + dateAttempt)
 	if len(tempDates) == 0:
 		# Did not find a name.
-		raise ValueError("No recognisable dates found in the roster.")
+		raise ex.NoRecognisedDates()
 	if debug:
 		print("tempDates: " + str(tempDates))
 	# create outputDict
@@ -266,22 +267,30 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHid
 	outputDict = {}
 	wb = load_workbook(fileName, data_only=True)
 	sheet = wb.active
-	if rosterFormat == "A":
-		outputDict = ingestTypeA(sheet, findName, debug)
-	elif rosterFormat == "B":
-		outputDict = ingestTypeB(sheet, findName, debug)
-	elif rosterFormat == "C":
-		outputDict = ingestTypeC(sheet, findName, debug)
-	else:
-		#the fuck?
+	try:
+		if rosterFormat == "A":
+			outputDict = ingestTypeA(sheet, findName, debug)
+		elif rosterFormat == "B":
+			outputDict = ingestTypeB(sheet, findName, debug)
+		elif rosterFormat == "C":
+			outputDict = ingestTypeC(sheet, findName, debug)
+		else:
+			#the fuck?
+			raise ValueError()
+	except (ValueError):
 		raise ValueError("Invalid roster format: " + str(rosterFormat))
+	except (ex.NameNotFound):
+		raise ValueError("Found no recognisable name in the roster \'"+fileName+"\'. Is it spelled correctly?")
+	except (ex.NoRecognisedDates):
+		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
 	#Now all the roster is ingested, trim the dict using the start/end dates.
 	copy = outputDict.copy()
 	for entry in copy:
 		e = datetime.strptime(entry, "%Y-%m-%d")
 		if not (e >= startDate and e <= endDate):
 			outputDict.pop(entry)
-
+	if outputDict == {}:
+		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
 	return outputDict
 
 
@@ -386,7 +395,7 @@ def ingestPDF(fileName):
 						#once we reach the end of the name, break.
 						break
 					employeeName += word + " "
-				employeeName.strip()
+				employeeName.strip() 
 			elif totalPretaxIncome == "" and "3. TOTAL TAXABLE EARNINGS" in line:
 				words = pageOfInterest[index+1].strip().split(" ")
 				totalPretaxIncome = words[0]
@@ -398,6 +407,7 @@ def ingestPDF(fileName):
 		ppStart = datetime.strptime(payPeriodEnding, "%d-%m-%Y") - timedelta(days=payPeriodLength)
 
 		fullDict = {
+			"name":fileName.split("/")[-1],
 			"employeeName":employeeName,
 			"employer":employer,
 			"totalPretaxIncome":totalPretaxIncome,

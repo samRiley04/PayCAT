@@ -10,6 +10,7 @@ import requests
 import shelve
 import sys
 import os
+import json
 
 #My files.
 import PayslipFunctions as pFx
@@ -77,15 +78,20 @@ class studiesDataList(Resource):
 				"message":"Settings not yet configured."
 			}, 503
 		parser = reqparse.RequestParser()
-		parser.add_argument("filePath")
-		parser.add_argument("mode")
+		parser.add_argument("filePath", required=True)
+		parser.add_argument("mode", required=True)
 		# Optional
-		parser.add_argument("filePath2")
 		parser.add_argument("rosterType")
 		parser.add_argument("employeeName")
 		parser.add_argument("startDate")
 		parser.add_argument("endDate")
+		parser.add_argument("filePath2")
+		parser.add_argument("rosterType2")
+		parser.add_argument("employeeName2")
+		parser.add_argument("startDate2")
+		parser.add_argument("endDate2")	
 		parsed_args = parser.parse_args()
+		print(json.dumps(parsed_args,indent=4))
 
 		# CREATE VIEW MODE ---
 		if parsed_args["mode"] == "view":
@@ -99,6 +105,7 @@ class studiesDataList(Resource):
 						usualHours = shlf["USUAL_HOURS"]
 					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], "C", datetime.strptime("2023-01-30", "%Y-%m-%d"), datetime.strptime("2023-02-12", "%Y-%m-%d")), baseRate, usualHours)
 					shelfEntry = {
+						"name":parsed_args["filePath"].split("/")[-1],
 						"employeeName": parsed_args["employeeName"],
 						"employer": "Unknown",
 						"totalPretaxIncome": ut.deepSumAmounts(dataDict),
@@ -109,21 +116,14 @@ class studiesDataList(Resource):
 				else:
 					return {
 						"data": None,
-						"message": "Wrong filetype. Accepts .pdf and .xlsx only at this stage."
-					}, 422
-				#Shed the leading directories
-				fileNameShort = parsed_args["filePath"].split('/')[-1]
-				newlyMadeID = None
+						"message": "Incompatibile file type for file \'"+parsed_args["filePath"]+"\'"
+					}, 415
 				#Shelf save.
 				with shelve.open(SHELF_NAME, writeback=True) as shlf:
 					#Add candidate to shelf using the next unique ID
 					newlyMadeID = str(shlf["_NEXT_ID"])
 					shlf['_NEXT_ID'] += 1
-					shelfEntry.update({
-						"name":fileNameShort,
-						"mode":"view"
-						})
-					shlf[newlyMadeID] = shelfEntry
+					shlf[newlyMadeID] = {"view":shelfEntry}
 					return {
 						"data":shlf[newlyMadeID],
 						"message":"Success"
@@ -136,8 +136,62 @@ class studiesDataList(Resource):
 		# CREATE COMPARE MODE ---
 		elif parsed_args["mode"] == "compare":
 			#Do some compare shit.
-			print(parsed_args)
-			return {}, 200
+			shelfEntry = []
+			# Dictionary-ify this data because for some reason ajax cannot manage to send it in this format.
+			toIterate = [{"filePath":parsed_args["filePath"],
+						"rosterType":parsed_args["rosterType"],
+						"employeeName":parsed_args["employeeName"],
+						"startDate":parsed_args["startDate"],
+						"endDate":parsed_args["endDate"]
+						}, {"filePath":parsed_args["filePath2"],
+						"rosterType":parsed_args["rosterType2"],
+						"employeeName":parsed_args["employeeName2"],
+						"startDate":parsed_args["startDate2"],
+						"endDate":parsed_args["endDate2"]
+						}]
+			for obj in toIterate:
+				try:
+					if obj["filePath"].endswith(".pdf"):
+						shelfEntry.append(pFx.ingestPDF(obj["filePath"])) #'dressed up' inside the function
+					elif obj["filePath"].endswith(".xlsx"):
+						# Get the current settings
+						with shelve.open(SHELF_NAME_SETTINGS) as shlf:
+							baseRate = shlf["WAGE_BASE_RATE"]
+							usualHours = shlf["USUAL_HOURS"]
+						dataDict = payroll.analyseRoster(pFx.ingestRoster(obj["filePath"], obj["employeeName"], obj["rosterType"], datetime.strptime(obj["startDate"], "%d-%m-%Y"), datetime.strptime(obj["endDate"], "%d-%m-%Y")), baseRate, usualHours)
+						shelfEntry.append({
+							"name":obj["filePath"].split('/')[-1],
+							"employeeName": obj["employeeName"],
+							"employer": "Unknown",
+							"totalPretaxIncome": ut.deepSumAmounts(dataDict),
+							"payPeriodStart": obj["startDate"],
+							"payPeriodEnding": obj["endDate"],
+							"data": dataDict
+						})
+					else:
+						return {
+							"data": None,
+							"message": "Incompatibile file type for file \'"+obj["filePath"]+"\'"
+						}, 415
+				except(FileNotFoundError) as e:
+					return {
+						"data": None,
+						"message": "File not found - \'"+e+"\'"
+					}, 404
+				except(ValueError) as e:
+					print(str(e))
+					return {
+						"data": None,
+						"message": "Error: " + str(e)
+					}, 404
+			with shelve.open(SHELF_NAME, writeback=True) as shlf:
+				newlyMadeID = str(shlf["_NEXT_ID"])
+				shlf['_NEXT_ID'] += 1
+				shlf[newlyMadeID] = {"compare":shelfEntry}
+				return {
+					"data":shlf[newlyMadeID],
+					"message":"Success"
+				}, 201
 		else:
 			#Unknown mode.
 			return {

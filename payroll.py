@@ -4,6 +4,8 @@ import holidays
 import locale
 locale.setlocale(locale.LC_ALL, '')
 
+import urllib.request
+
 """
 rosterDict = {
 	"2023-10-31": "0700-1900",
@@ -63,25 +65,29 @@ HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
 JMO_ON_CALL_HOURLY = 12.22
 
 
-def generatePublicHolidays():
+# Don't even ask...
+KINGS_BIRTHDAY = {"2024": datetime.strptime("23-09-2024", "%d-%m-%Y").date(), 
+	"2025": datetime.strptime("29-09-2025", "%d-%m-%Y").date(), 
+	"2026": datetime.strptime("28-09-2026", "%d-%m-%Y").date()
+}
+
+def generatePublicHolidays(yearsList):
 	PUBLIC_HOLIDAYS_TEMP = {}
-	thisYear = datetime.now().strftime("%Y")
-	au_holidays = holidays.AU(subdiv='WA',years=int(thisYear))
+	au_holidays = holidays.AU(subdiv='WA',years=yearsList)
 	for PH in au_holidays.items():
 		PUBLIC_HOLIDAYS_TEMP.update({PH[0]:PH[1]})
 	#For some reason Easter Sunday not included in this holidays library??
-	PUBLIC_HOLIDAYS_TEMP.update({(au_holidays.get_named("Good Friday")[0]+timedelta(days=2)):"Easter Sunday"})
+	for event in au_holidays.get_named("Good Friday"):
+		PUBLIC_HOLIDAYS_TEMP.update({(event+timedelta(days=2)):"Easter Sunday"})
 	#For some reason the Kings Birthday is wrong in this library
-	PUBLIC_HOLIDAYS_TEMP.pop(au_holidays.get_named("King's Birthday")[0])
-	PUBLIC_HOLIDAYS_TEMP.update({datetime.strptime("23-09-"+thisYear, "%d-%m-%Y").date():"King's Birthday"})
+	for birthday in au_holidays.get_named("King's Birthday"):
+		PUBLIC_HOLIDAYS_TEMP.pop(birthday)
+		PUBLIC_HOLIDAYS_TEMP.update({KINGS_BIRTHDAY[str(birthday.year)]:"King's Birthday"})
 	#Sort the holidays by date because idk why they aren't sorted...
 	theList = list(PUBLIC_HOLIDAYS_TEMP.keys())
 	for x in sorted(theList):
 		PUBLIC_HOLIDAYS.update({x:PUBLIC_HOLIDAYS_TEMP[x]})
 	return PUBLIC_HOLIDAYS
-
-generatePublicHolidays()
-
 
 def createDateRangeDays(start, end):
 	returnList = [start]
@@ -90,6 +96,16 @@ def createDateRangeDays(start, end):
 		if end in returnList:
 			break
 		returnList.append(start + timedelta(days=x))
+		x += 1
+	return returnList
+
+def createDateRangeYears(start,end):
+	returnList = [start.year]
+	x = start.year+1
+	while True:
+		if end.year in returnList:
+			break
+		returnList.append(x)
 		x += 1
 	return returnList
 
@@ -183,8 +199,8 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 	dirtyAmountSum = 0 #Not used currently.
 
 	# Generate the superior tempDict (datetime obj instead of strings)
-	rangeLower = datetime.strptime("9999-12-30","%Y-%m-%d").date()
-	rangeUpper = datetime.strptime("0001-01-01","%Y-%m-%d").date()
+	rangeLower = None
+	rangeUpper = None
 	for shift in rosterDict:
 		shiftStart = rosterDict[shift].split('-')[0]
 		shiftEnd = rosterDict[shift].split('-')[1]
@@ -197,9 +213,9 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 				print("Making a night shift work proper.")
 
 		#Used to detect public holidays.
-		if rangeLower > dtStart.date():
+		if (rangeLower is None) or (rangeLower > dtStart.date()):
 			rangeLower = dtStart.date()
-		if rangeUpper < dtEnd.date():
+		if (rangeUpper is None) or (rangeUpper < dtEnd.date()):
 			rangeUpper = dtEnd.date()
 		tempDict.update({
 			datetime.strptime(shift,"%Y-%m-%d"):[dtStart, dtEnd]
@@ -208,6 +224,9 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 	if debug:
 		print("rangeLOWER: " + datetime.strftime(rangeLower,"%d-%m-%Y"))
 		print("rangeUPPER: " + datetime.strftime(rangeUpper,"%d-%m-%Y"))
+
+	# Using the start and end times of our roster, create all potential public holiday dates we could encounter.
+	PUBLIC_HOLIDAYS = generatePublicHolidays(createDateRangeYears(rangeLower, rangeUpper))
 
 	if baseHours > HOURS_BEFORE_OVERTIME:
 		overtimeHours = baseHours - HOURS_BEFORE_OVERTIME

@@ -27,6 +27,7 @@ let validSettings = false
 
 // For creating new viewMode or compareMode entry()
 // FS means file select
+// Need global variables because the value of the DOM element is shortened for readability.
 let viewModeFS1path = ""
 let compareModeFS1path = ""
 let compareModeFS2path = ""
@@ -61,28 +62,110 @@ function newViewmode() {
     });
 }
 
-function newComparemode() {
+//Shamelessly plagarised from stack overflow
+function isValidDate(dateString) {
+    // First check for the pattern
+    if(!/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(dateString))
+        return false;
+    dateString = dateString.replace(/[-.]/, "/")
+    // Parse the date parts to integers
+    var parts = dateString.split("/");
+    var day = parseInt(parts[0], 10);
+    var month = parseInt(parts[1], 10);
+    var year = parseInt(parts[2], 10);
+
+    // Check the ranges of month and year
+    if(year < 1000 || year > 3000 || month == 0 || month > 12)
+        return false;
+
+    var monthLength = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
+
+    // Adjust for leap years
+    if(year % 400 == 0 || (year % 100 != 0 && year % 4 == 0))
+        monthLength[1] = 29;
+
+    // Check the range of the day
+    return day > 0 && day <= monthLength[month - 1];
+};
+
+function validateComparemodeInputs() {
+  //If the input field is empty, and if its NOT hidden
+  let fail = false
   if (compareModeFS1path == "") {
-    //Tell user to select a file and abort
     $("#newEntryModal").find("#compareMode-FS1").addClass("is-invalid")
-  } 
+    abort = true
+  } else {
+    $("#newEntryModal").find("#compareMode-FS1").removeClass("is-invalid") 
+  }
   if (compareModeFS2path == "") {
     $("#newEntryModal").find("#compareMode-FS2").addClass("is-invalid")
+    abort = true
+  } else {
+    $("#newEntryModal").find("#compareMode-FS2").removeClass("is-invalid")
   }
-  if (compareModeFS2path == "" || compareModeFS1path == "") {
-    return 0;
+
+  let daList = []
+  if (!$(".compareMode-F1-roster-fields").is("[hidden]")) {
+     daList = daList.concat(["#compareMode-empName", "#compareMode-endDate", "#compareMode-startDate"])
+  }
+  if (!$(".compareMode-F2-roster-fields").is("[hidden]")) {
+    daList = daList.concat(["#compareMode-empName2", "#compareMode-endDate2", "#compareMode-startDate2"])
+  }
+  for (id of daList) {
+    if (($(id).val() == "") || (id.includes("Date") && !isValidDate($(id).val())) ) {
+      $(id).addClass("is-invalid")
+      fail = true
+    } else {
+      $(id).removeClass("is-invalid")
+    }
+  }
+  if (fail) {return false}
+  return true
+}
+
+function newComparemode() {
+  // INPUT VALIDATION
+  if (!validateComparemodeInputs()) {
+    //return 0
   }
 
   // Otherwise, submit a new POST for server to ingest an entry.
+  sendObj = {"mode":"compare",
+    "filePath":compareModeFS1path,
+    "filePath2":compareModeFS2path}
+
+  rosterType = null
+  rosterType2 = null
+  if (compareModeFS1path.endsWith(".xlsx")) {
+    sendObj = {...sendObj, "rosterType": $("#newEntryModal").find("[name=compareMode-RT1]:checked").attr("contentz"),
+      "employeeName": $("#compareMode-empName").val(),
+      "startDate": $("#compareMode-startDate").val(),
+      "endDate": $("#compareMode-endDate").val()
+    }
+  }
+  if (compareModeFS2path.endsWith(".xlsx")) {
+    sendObj = {...sendObj, "rosterType2": $("#newEntryModal").find("[name=compareMode-RT2]:checked").attr("contentz"),
+      "employeeName2": $("#compareMode-empName2").val(),
+      "startDate2": $("#compareMode-startDate2").val(),
+      "endDate2": $("#compareMode-endDate2").val()
+    }
+  }
+
+  sendObj = {
+    "mode":"compare",
+    "filePath":"/Users/sam/Documents/GitHub/PayCAT/test.pdf",
+    "filePath2":"/Users/sam/Documents/GitHub/PayCAT/TESTING/OPH.xlsx",
+    "rosterType2":"C",
+    "employeeName2":"Samuel Riley",
+    "startDate2":"30-01-2021",
+    "endDate2":"12-02-2021"
+  }
+
   $.when($.ajax({
       url: "http://localhost:8000/api/studydata",
       type: 'POST',
       contentType: 'application/json',
-      data: JSON.stringify({
-    "filePath":compareModeFS1path,
-    "filePath2":compareModeFS2path,
-    "mode":"compare"
-      }),
+      data: JSON.stringify(sendObj),
       timeout: 4000, //3 minutes
       headers: {
         'Access-Control-Allow-Origin': '*'
@@ -91,9 +174,8 @@ function newComparemode() {
       $('#newEntryModal').modal('hide');
       updateSidebarList();
       clearFileSelect();
-    }).fail(function (data) {
-      alert("failed to add PDF.")
-      //$('#card-container').html("<span class=\"fw-bold text-danger\">Failed to load PDF.</span>")
+    }).fail(function(jqXHR) {
+      alert(jqXHR["responseJSON"]["message"])
     });
 }
 
@@ -112,14 +194,18 @@ function updateSidebarList() {
       for (entryID in data["data"]) {
         //for each entry in the shelf database, create a new entry in the sidebar
         let newID = String(entryID)+"-entry"
-        if (data["data"][entryID]["mode"] == "view") {
+        let study = data["data"][entryID] //either a "compare" or "view" object
+        //"RENDER" A VIEW TYPE STUDY
+        if (Object.hasOwn(study, "view")) { //checks if obj contains the key "view"
           $('#side-bar-listgroup').append($('#template-storage > #side-bar-view').clone().attr('id',newID))
-          $('#side-bar-listgroup').find('#'+newID).find("#file-title").text(data["data"][entryID]["name"])
+          $('#side-bar-listgroup').find('#'+newID).find("#file-title").text(study["view"]["name"])
           $('#side-bar-listgroup').find('#'+newID).find("#sbv-delbutton").attr('onclick', "deleteSidebarEntry("+entryID+"); event.stopPropagation();")
           $('#side-bar-listgroup').find('#'+newID).attr('onclick', "selectSidebarEntry("+entryID+")")
-        } else if (data["data"][entryID]["mode"] == "compare") {
-          let file1 = "jeff.pdf";
-          let file2 = data["data"][entryID]["name"];
+        }
+        // "RENDER" A COMPARE TYPE STUDY
+        else if (Object.hasOwn(study, "compare")) {
+          let file1 = study["compare"][0]["name"];
+          let file2 = study["compare"][1]["name"];
           $('#side-bar-listgroup').append($('#template-storage > #side-bar-compare').clone().attr('id',newID))
           //FILE 1
           $('#side-bar-listgroup').find("#"+newID).find("#f1-title").text(file1)
@@ -171,14 +257,15 @@ function loadEntry(pdfID) {
       }
     })).done(function (data) {
       // --- For VIEW-type entries: ---
-      if (data["data"]["mode"] == "view") {
+      if (Object.hasOwn(data["data"], "view")) {
+        //Readability: (datesDict is the dictionary of payslip entries with key="23-02-2022" for example.)
+        let study = data["data"]["view"]
+        let datesDict = study["data"]; //sorry for being confusing. See the API documentation.
         let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
         //Clear the main container and add the new content type.
-        $('#content-column').html($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
+        $('#content-column').html($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header"))
         //Then add the body part.
         $('#content-column').append($("#template-storage").find("#viewMode-body").clone().attr("id",newID+"-body"))
-        //Readability: (datesDict is the dictionary of payslip entries with key="23-02-2022" for example.)
-        datesDict = data["data"]["data"];
         //Now iterate through the data in this entry and generate a card for each date.
         for (date in datesDict) {
           //Clone a new card in the container, rename it's ID as the date, and remove hidden.
@@ -218,64 +305,58 @@ function loadEntry(pdfID) {
           $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
         }
         //Record the heading entries
-        $('#'+newID+"-header").find("#header-PPE").text("PPE " + data["data"]["payPeriodEnding"])
-        $('#'+newID+"-header").find("#header-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
-        $('#'+newID+"-header").find("#header-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
+        $('#'+newID+"-header").find("#header-PPE").text("PPE " + study["payPeriodEnding"])
+        $('#'+newID+"-header").find("#header-name-employer").text(study["employeeName"].toUpperCase() + "  /  " + study["employer"].toUpperCase())
+        $('#'+newID+"-header").find("#header-totalPTI").text("$"+study["totalPretaxIncome"])
       // --- For COMPARE-type entries: ---
-      } else if (data["data"]["mode"] == "compare") {
+      } else if (Object.hasOwn(data["data"], "compare")) {
         //ESSENTIALLY THE SAME SHIT, but twice
+        let study = data["data"]["compare"]
         let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
         //Clear the main container and add the new content type.
         $('#content-column').html($("#template-storage").find("#compareMode-body").clone().attr("id",newID+"-body"))
-        // $('#content-column').html($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
         let bodyID = "#"+newID+"-body";
         //Then add the header.
-        if (data["data"]["name"].endsWith(".pdf")) {
-          $(bodyID).find("#card-container-left").append($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
-        } else if (data["data"]["name"].endsWith(".xlsx")) {
-          $(bodyID).find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header"))
+        if (study[0]["name"].endsWith(".pdf")) {
+          $(bodyID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-left"))
+        } else if (study[0]["name"].endsWith(".xlsx")) {
+          $(bodyID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-left"))
         }
-        if (data["data"]["name2"].endsWith(".pdf")) {
-          $(bodyID).find("#card-container-right").append($('#template-storage').find("#viewMode-header").clone().attr("id",newID+"-header"))
-        } else if (data["data"]["name"].endsWith(".xlsx")) {
-          $(bodyID).find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header"))
+        if (study[1]["name"].endsWith(".pdf")) {
+          $(bodyID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-right"))
+        } else if (study[1]["name"].endsWith(".xlsx")) {
+          $(bodyID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-right"))
         }
         
         //Readability:
-        todo = [{
-          "datesDict": data["data"]["data"],
-          "side":"left",
-          "fileName":data["data"]["name"]
-        }, {
-          "datesDict": data["data"]["data2"],
-          "side":"right",
-          "fileName":data["data"]["name2"]
-        }]
+        //Because I can't do it in a smarter way:
+        let todo = [{...study[0], "side":"left"},{...study[1], "side":"right"}]
         //Now iterate through the data in this entry and generate a card for each date.
         for (whichever of todo) { 
-          for (date in whichever["datesDict"]) {
-            let side = whichever["side"]
+          let side = whichever["side"]
+          let headerID = "#"+newID+"-header-"+side
+          for (date in whichever["data"]) {
             //Clone a new card in the container, rename it's ID as the date, and remove hidden.
             let cardID = side+"-"+date+"-card"
             let templateID = ""
-            if (whichever["fileName"].endsWith(".pdf")) {
+            if (whichever["name"].endsWith(".pdf")) {
               templateID = "#item-template-payslip"
-            } else if (whichever["fileName"].endsWith(".xlsx")) {
+            } else if (whichever["name"].endsWith(".xlsx")) {
               templateID = "#item-template-roster"
             }
-            $('#content-column').find(bodyID).find("#card-container-"+side).append($(bodyID).find(templateID).clone().attr("id",cardID).removeAttr("hidden"))
+            $('#content-column').find(bodyID).find("#body-rowcol").find("#card-container-"+side).append($(bodyID).find(templateID).clone().attr("id",cardID).removeAttr("hidden"))
             //Uniqify the collapse IDs (generic)
             //INTENTIONALLY CREATE DUPLICATE IDS HERE ! - entries with the same date should open and close together, thus should name them identically!
             $('#content-column').find(bodyID).find('#'+cardID+" > .card-header").attr("href", "#"+date+"-collapse")
             $('#content-column').find(bodyID).find('#'+cardID+" > .collapse").attr("id", date+"-collapse")
-            //Fill all the values in the card
+            //Fill all the values in the card 
             //Date:
             //TODO - 'from date' AND 'to date'.
             $('#content-column').find(bodyID).find('#'+cardID).find("#item-date").text(date)       
             //Now work through each contributing item (base hours, OT @ 1.5), filling the text and summing the total amount.
             let sumAmount = 0
-            for (let i = 0; i < whichever["datesDict"][date].length; i++) {
-              let entry = whichever["datesDict"][date][i]
+            for (let i = 0; i < whichever["data"][date].length; i++) {
+              let entry = whichever["data"][date][i]
               sumAmount += parseFloat(entry["amount"])
               //'Item entries' are 'text/units+rate/amount' e.g. "BASE HOURS (12@43.223)      $123.45"
               $(bodyID).find('#'+cardID).find("#item-entry-container").append($(bodyID).find('#'+cardID).find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
@@ -298,11 +379,11 @@ function loadEntry(pdfID) {
             //finally record the sum of all amounts
             $(bodyID).find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
           }
+          //Record the heading entries
+          $('#content-column').find(headerID).find("#header-PPE").text("PPE " + whichever["payPeriodEnding"])
+          $('#content-column').find(headerID).find("#header-name-employer").text(whichever["employeeName"].toUpperCase() + "  /  " + whichever["employer"].toUpperCase())
+          $('#content-column').find(headerID).find("#header-totalPTI").text("$"+whichever["totalPretaxIncome"])
         }
-        //Record the heading entries
-        $('#'+newID+"-header").find("#header-PPE").text("PPE " + data["data"]["payPeriodEnding"])
-        $('#'+newID+"-header").find("#header-name-employer").text(data["data"]["employeeName"].toUpperCase() + "  /  " + data["data"]["employer"].toUpperCase())
-        $('#'+newID+"-header").find("#header-totalPTI").text("$"+data["data"]["totalPretaxIncome"])
       } else {
         // ?? what else is there.
         alert("invalid type. Unable to load.")
@@ -357,6 +438,24 @@ function clearFileSelect() {
   $("#newEntryModal").find("#compareMode-FS1").val("")
   $("#newEntryModal").find("#compareMode-FS2").removeClass("is-invalid")
   $("#newEntryModal").find("#compareMode-FS2").val("")
+
+  $(".compareMode-F1-roster-fields").find(".btn-check").each(function() {
+      $(this).prop("checked", false)
+  })
+  $(".sam-should-be-checked").each(function() {
+    $(this).prop("checked", true)
+  })
+  $(".compareMode-F1-roster-fields, .compareMode-F2-roster-fields").each(function() {
+    $(this).attr('hidden', true)
+    $(this).find(".clear-on-reset").each(function() {
+      $(this).val("")
+    })
+  })
+
+
+  $(".compareMode-F2-roster-fields").each(function() {
+    $(this).attr('hidden', true)
+  })
 }
 
 //fsID includes # already.
@@ -370,13 +469,39 @@ function fillFileSelect(fsID) {
     }
   })).done(function (data) {
     let filePath = data["data"].split('/')
-    $(fsID).val(filePath[filePath.length -1])
+    //Check if we need to un-hide the options required for a roster file-type.
+    unhideOptions = false
+    if (String(filePath).endsWith(".xlsx")) {
+      unhideOptions = true
+    }
+    $(fsID).val(filePath[filePath.length -1]) //shortname of the file
     if (fsID == "#viewMode-FS1") {
       viewModeFS1path = data["data"]
+      if (unhideOptions) {
+        alert("unhide viewmode roster options")
+      }
     } else if (fsID == "#compareMode-FS1") {
       compareModeFS1path = data["data"]
+      if (unhideOptions) {
+        $(".compareMode-F1-roster-fields").each(function() {
+          $(this).attr('hidden', false)
+        })
+      } else {
+        $(".compareMode-F1-roster-fields").each(function() {
+          $(this).attr('hidden', true)
+        })
+      }
     } else if (fsID == "#compareMode-FS2") {
       compareModeFS2path = data["data"]
+      if (unhideOptions) {
+        $(".compareMode-F2-roster-fields").each(function() {
+          $(this).attr('hidden', false)
+        })
+      } else {
+        $(".compareMode-F2-roster-fields").each(function() {
+          $(this).attr('hidden', true)
+        })
+      }
     }
   }).fail(function (data) {
     alert("Failed to get path. Message: "+data["message"]);
@@ -527,5 +652,19 @@ function confirmSettingsNotUnset() {
 
 }
 
+//Event listeneres etc..
+function setup() {
+  //FOR COMPAREMODE - Resets the value on clicking the file selectors
+  // $("#compareMode-FS1").on('click touchstart', function() {
+  //   $(this).val('');
+  //   compareModeFS1 = ""
+  // });
+  // $("#compareMode-FS2").on('click touchstart', function() {
+  //   $(this).val('');
+  //   compareModeFS2 = ""
+  // });
+}
+ 
 confirmSettingsNotUnset()
+setup()
 
