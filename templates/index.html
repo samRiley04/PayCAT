@@ -155,7 +155,7 @@
       </div>
     </div>
 
-    <!-- #compareMode - double card columns. -->
+    <!-- OLD #compareMode - double card columns. DEFUNCT -->
     <div class="row py-2 mx-0">
       <div class="col" id="compareMode-body">
         <!-- HEADER ROW -->
@@ -225,6 +225,95 @@
           <div class="col" id='card-container-left'>
           </div>
           <div class="col" id='card-container-right'>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW !! #compareMode Template - NOT CHANGED IDS YET -->
+    <div class="row py-2 mx-0" id="compareMode-body-new"> <!--newID-->
+      <div class="col">
+        <!-- HEADER ROW -->
+        <div class="row mb-3" id='header-rowcol'>
+          <div class="col" id='card-container-left'>
+          </div>
+          <div class="col" id='card-container-right'>
+          </div>
+        </div>
+        <!-- BODY ROW -->
+        <div class="row">
+          <div class="col" id="body-rowcol">
+            <div class="row mb-3">
+              <div class="col text-center">
+                <div class="h3 text-grey text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">DISCREPANCIES</div>
+              </div>
+            </div>
+
+            <div id="notice-template" hidden>
+              <div class="row">
+                <div class="col">
+                  <div class="h2" id="notice-header-badges">
+                    <span class="badge bg-danger" hidden></span> 
+                  </div>
+                  <div class="collapse" id="notice-header-collapse">
+                    <span class="" hidden></span>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col" id="notice-body-left">
+
+                  <div hidden class="card my-1" id='item-template-ghost' >
+                    <div class="card-header bg-body-secondary rounded-bottom" role="button" data-bs-toggle="collapse" href="#collapseIDk">
+                      <div class="row">
+                        <div class="col">
+                          <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
+                        </div>
+                        <div class="col text-end">
+                          <span class="text-success fw-medium fs-4" id='item-total'></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div hidden class="card my-1" id='item-template'>
+                    <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseIDk">
+                      <div class="row">
+                        <div class="col">
+                          <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
+                        </div>
+                        <div class="col text-end">
+                          <span class="text-success fw-medium fs-4" id='item-total'>$--.--</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="collapse" id="collapseIDk">
+                      <div class="card card-body py-2" id='item-entry-container'>
+                        <div class="row align-items-center" id='item-entry' >
+                          <div class="col-auto">
+                           <span class="fw-light fs-6 fst-italic" id='item-description'>--</span>
+                          </div>
+                          <div class="col text-start">
+                            <span class="fw-lighter fs-6 fst-italic text-secondary" id='item-unitsrate'>(--.-- @ --.--)</span>
+                          </div>
+                          <div class="col-3 text-end">
+                          <span class="fw-medium fs-6" id='item-amount'>$--.--</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <div class="col" id="notice-body-right">                
+                </div>
+              </div>
+              <div class="row mb-4">
+                <div class="col" id="notice-footer">
+                </div>
+              </div>
+            </div>
+            
           </div>
         </div>
       </div>

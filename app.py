@@ -17,6 +17,7 @@ import PayslipFunctions as pFx
 import payroll
 import utilities as ut
 
+
 # Initialise
 #To ensure this works packaged.
 if getattr(sys, 'frozen', False):
@@ -184,10 +185,16 @@ class studiesDataList(Resource):
 						"data": None,
 						"message": "Error: " + str(e)
 					}, 404
+			# Entry now constructed to standard, lets identify the discrepancies.
+			discrepancies = ut.findDiscrepancies(shelfEntry)
+
 			with shelve.open(SHELF_NAME, writeback=True) as shlf:
 				newlyMadeID = str(shlf["_NEXT_ID"])
 				shlf['_NEXT_ID'] += 1
-				shlf[newlyMadeID] = {"compare":shelfEntry}
+				shlf[newlyMadeID] = {
+					"compare":shelfEntry,
+					"discrepancies": discrepancies
+				}
 				return {
 					"data":shlf[newlyMadeID],
 					"message":"Success"
@@ -204,6 +211,334 @@ api.add_resource(studiesDataList, "/api/studydata")
 
 class studyData(Resource):
 	def get(self, studyID):
+		testingLIST = [
+    {
+        "name": "OPH.xlsx",
+        "employeeName": "Samuel Riley",
+        "employer": "Unknown",
+        "totalPretaxIncome": "3,889.05",
+        "payPeriodStart": "30-1-2023",
+        "payPeriodEnding": "12-2-2023",
+        "data": {
+            "30-01-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "31-01-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "01-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "4.00",
+                    "rate": "42.3298",
+                    "amount": "169.32"
+                }
+            ],
+            "02-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "03-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "04-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "3.00",
+                    "rate": "42.3298",
+                    "amount": "126.99"
+                },
+                {
+                    "description": "PENALTIES AT 50%",
+                    "units": "3.0",
+                    "rate": "21.1649",
+                    "amount": "63.49"
+                }
+            ],
+            "07-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.0",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.0",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                }
+            ],
+            "08-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.0",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.0",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                }
+            ],
+            "09-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.0",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.0",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                }
+            ],
+            "10-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.0",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                },
+                {
+                    "description": "PENALTIES AT 50%",
+                    "units": "8.75",
+                    "rate": "21.1649",
+                    "amount": "185.19"
+                }
+            ]
+        }
+    },
+    {
+        "name": "cghs-PPE 2023-02-12.pdf",
+        "employeeName": "RILEY,SAMUEL NATHAN ",
+        "employer": "NORTH METROPOLITAN HEALTH SERVICE",
+        "totalPretaxIncome": "4,517.82",
+        "payPeriodStart": "29-01-2023",
+        "payPeriodEnding": "12-02-2023",
+        "data": {
+            "29-01-2023": [
+                {
+                    "description": "INCREMENT ADJUSTMENT ",
+                    "units": "INCREMENT",
+                    "rate": "ADJUSTMENT",
+                    "amount": "388.37"
+                },
+                {
+                    "description": "OVERTIME BACK PAY ADJUST ",
+                    "units": "PAY",
+                    "rate": "ADJUST",
+                    "amount": "45.14"
+                }
+            ],
+            "30-01-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                },
+                {
+                    "description": "PROFESSIONAL DEVT ALLOW",
+                    "amount": "222.74"
+                },
+                {
+                    "description": "SMART SALARY SP FIXED",
+                    "amount": "-354.45"
+                }
+            ],
+            "31-01-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "01-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "4.00",
+                    "rate": "42.3298",
+                    "amount": "169.32"
+                }
+            ],
+            "02-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "9.00",
+                    "rate": "42.3298",
+                    "amount": "380.97"
+                }
+            ],
+            "03-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "8.00",
+                    "rate": "42.3298",
+                    "amount": "338.64"
+                }
+            ],
+            "04-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "3.00",
+                    "rate": "42.3298",
+                    "amount": "126.99"
+                },
+                {
+                    "description": "PENALTIES AT 50% ",
+                    "units": "3.00",
+                    "rate": "21.1649",
+                    "amount": "63.49"
+                }
+            ],
+            "06-02-2023": [
+                {
+                    "description": "ON CALL ALLCE - DIT ",
+                    "units": "24.00",
+                    "rate": "11.8600",
+                    "amount": "284.64"
+                }
+            ],
+            "07-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.00",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.00",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                }
+            ],
+            "08-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.00",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.00",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                }
+            ],
+            "09-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.00",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 25%",
+                    "units": "8.00",
+                    "rate": "10.5824",
+                    "amount": "84.66"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                }
+            ],
+            "10-02-2023": [
+                {
+                    "description": "BASE HOURS",
+                    "units": "10.00",
+                    "rate": "42.3298",
+                    "amount": "423.30"
+                },
+                {
+                    "description": "PENALTIES AT 50% ",
+                    "units": "8.75",
+                    "rate": "21.1649",
+                    "amount": "185.19"
+                },
+                {
+                    "description": "PENALTIES AT 20%",
+                    "units": "1.25",
+                    "rate": "8.4660",
+                    "amount": "10.58"
+                }
+            ]
+        }
+    }
+		]
+
+		### TEMPORARY 
+		return {
+			"data": {"compare":testingLIST, "discrepancies":ut.findDiscrepancies(testingLIST)},
+			"message":"ASDaSD"
+		}, 200
+
+
 		"""# Validate.
 		if not pdfNameShort[-4:] == ".pdf":
 			return {

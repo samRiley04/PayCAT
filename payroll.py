@@ -68,7 +68,11 @@ JMO_ON_CALL_HOURLY = 12.22
 # Don't even ask...
 KINGS_BIRTHDAY = {"2024": datetime.strptime("23-09-2024", "%d-%m-%Y").date(), 
 	"2025": datetime.strptime("29-09-2025", "%d-%m-%Y").date(), 
-	"2026": datetime.strptime("28-09-2026", "%d-%m-%Y").date()
+	"2026": datetime.strptime("28-09-2026", "%d-%m-%Y").date(),
+	"2023": datetime.strptime("25-09-2023", "%d-%m-%Y").date(),
+	"2022": datetime.strptime("26-09-2022", "%d-%m-%Y").date(),
+	"2021": datetime.strptime("27-09-2021", "%d-%m-%Y").date(),
+	"2020": datetime.strptime("28-09-2020", "%d-%m-%Y").date()
 }
 
 def generatePublicHolidays(yearsList):
@@ -186,6 +190,8 @@ def expandForBaseHours(pensList):
 # VERY IMPORTANT NOTE: this function ASSUMES the roster given contains shifts worked over a fortnight!.
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
 def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
+	if rosterDict == {}:
+		raise ValueError("Found no recognisable dates in the roster.")
 	WAGE_BASE_RATE = wageBaseRate
 	USUAL_HOURS = usualHours
 	# -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE

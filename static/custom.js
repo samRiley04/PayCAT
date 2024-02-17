@@ -151,15 +151,15 @@ function newComparemode() {
     }
   }
 
-  sendObj = {
-    "mode":"compare",
-    "filePath":"/Users/sam/Documents/GitHub/PayCAT/test.pdf",
-    "filePath2":"/Users/sam/Documents/GitHub/PayCAT/TESTING/OPH.xlsx",
-    "rosterType2":"C",
-    "employeeName2":"Samuel Riley",
-    "startDate2":"30-01-2021",
-    "endDate2":"12-02-2021"
-  }
+  // sendObj = {
+  //   "mode":"compare",
+  //   "filePath":"/Users/sam/Documents/GitHub/PayCAT/test.pdf",
+  //   "filePath2":"/Users/sam/Documents/GitHub/PayCAT/TESTING/OPH.xlsx",
+  //   "rosterType2":"C",
+  //   "employeeName2":"Samuel Riley",
+  //   "startDate2":"30-01-2021",
+  //   "endDate2":"12-02-2021"
+  // }
 
   $.when($.ajax({
       url: "http://localhost:8000/api/studydata",
@@ -256,7 +256,13 @@ function loadEntry(pdfID) {
         'Access-Control-Allow-Origin': '*'
       }
     })).done(function (data) {
+      let compareModeBasic = false
       // --- For VIEW-type entries: ---
+
+      // let newID = "121"
+      // $('#content-column').html($("#template-storage").find("#some-shit").clone().attr("id",newID+"-body"))
+      // return 1
+
       if (Object.hasOwn(data["data"], "view")) {
         //Readability: (datesDict is the dictionary of payslip entries with key="23-02-2022" for example.)
         let study = data["data"]["view"]
@@ -309,7 +315,7 @@ function loadEntry(pdfID) {
         $('#'+newID+"-header").find("#header-name-employer").text(study["employeeName"].toUpperCase() + "  /  " + study["employer"].toUpperCase())
         $('#'+newID+"-header").find("#header-totalPTI").text("$"+study["totalPretaxIncome"])
       // --- For COMPARE-type entries: ---
-      } else if (Object.hasOwn(data["data"], "compare")) {
+      } else if (Object.hasOwn(data["data"], "compare") && compareModeBasic) {
         //ESSENTIALLY THE SAME SHIT, but twice
         let study = data["data"]["compare"]
         let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
@@ -384,6 +390,70 @@ function loadEntry(pdfID) {
           $('#content-column').find(headerID).find("#header-name-employer").text(whichever["employeeName"].toUpperCase() + "  /  " + whichever["employer"].toUpperCase())
           $('#content-column').find(headerID).find("#header-totalPTI").text("$"+whichever["totalPretaxIncome"])
         }
+      } else if (Object.hasOwn(data["data"], "compare")) {
+        alert("real compare mode:")
+        let study = data["data"]["compare"]
+        let newID = pdfID+"-entry-body"
+        $('#content-column').html($("#template-storage").find("#compareMode-body-new").clone().attr("id",newID))
+        // ADD THE HEADERS
+        if (study[0]["name"].endsWith(".pdf")) {
+          $("#"+newID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-left"))
+        } else if (study[0]["name"].endsWith(".xlsx")) {
+          $("#"+newID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-left"))
+        }
+        if (study[1]["name"].endsWith(".pdf")) {
+          $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-right"))
+        } else if (study[1]["name"].endsWith(".xlsx")) {
+          $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-right"))
+        }
+        // FILL THE BODY
+        let discrepancies = data["data"]["discrepancies"]
+        for (discrepancyDate in discrepancies) {
+          // Make a empty template.
+          let noticeID = discrepancyDate+"-notice"
+          $("#"+newID).find("#body-rowcol").append($("#"+newID).find("#notice-template").clone().attr("id",noticeID))
+          $("#"+noticeID).removeAttr('hidden');
+          // Fill the card elements.
+          todo = {"left":0, "right":1}
+          for (side in todo) {
+            sideID = side+discrepancyDate+"-disc-card"
+            if (Object.hasOwn(study[todo[side]]["data"], discrepancyDate)) { //if the date is in the left list
+              //Make a normal entry
+              $("#"+noticeID).find("#notice-body-"+side).append($("#"+noticeID).find("#item-template").clone().attr('id',sideID))
+              $("#"+sideID).removeAttr('hidden')
+              if (study[todo[side]]["name"].endsWith(".pdf")) {
+                $("#"+sideID+" > .card-header").addClass("sam-payslip-theme-light")
+              } else if (study[todo[side]]["name"].endsWith(".xlsx")) {
+                $("#"+sideID+" > .card-header").addClass("sam-roster-theme-light")
+              }
+              $("#"+sideID).find(".card-header").attr("href", "#"+discrepancyDate+"-disc-collapse")
+              $("#"+sideID).find(".collapse").attr("id", discrepancyDate+"-disc-collapse") //Don't specify left or right as both sides should open together if they're the same date.
+            } else {
+              //Otherwise make a ghost
+              $("#"+noticeID).find("#notice-body-"+side).append($(noticeID).find("#item-template-ghost").clone().attr('id',sideID))
+              $("#"+sideID).removeAttr('hidden')
+              $("#"+sideID).find(".card-header").attr("href", "") //The ghost shouldn't open it's collapse.
+              $("#"+sideID).find(".collapse").attr("id", sideID+"-collapse-DONTOPEN")
+            }
+            
+          }
+
+          
+
+          // // Iterate badges, and add them.
+          // for (badge in discrepancies[discrepancyDate]["badges"]) {
+            
+          // }
+
+          // // Iterate highlights, and highlight
+          // for (highlight in discrepancies[discrepancyDate]["highlights"]) {
+
+          // }
+
+        }
+
+
+
       } else {
         // ?? what else is there.
         alert("invalid type. Unable to load.")

@@ -284,11 +284,18 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHid
 	except (ex.NoRecognisedDates):
 		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
 	#Now all the roster is ingested, trim the dict using the start/end dates.
+	if debug:
+		print("output dict:")
+		print(outputDict)
+		print("start: " + str(startDate) + ", end: " + str(endDate))
 	copy = outputDict.copy()
 	for entry in copy:
 		e = datetime.strptime(entry, "%Y-%m-%d")
 		if not (e >= startDate and e <= endDate):
 			outputDict.pop(entry)
+	if debug:
+		print("output dict:")
+		print(outputDict)
 	if outputDict == {}:
 		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
 	return outputDict
