@@ -532,11 +532,11 @@ class studyData(Resource):
     }
 		]
 
-		### TEMPORARY 
-		return {
-			"data": {"compare":testingLIST, "discrepancies":ut.findDiscrepancies(testingLIST)},
-			"message":"ASDaSD"
-		}, 200
+		# ### TEMPORARY 
+		# return {
+		# 	"data": {"compare":testingLIST, "discrepancies":ut.findDiscrepancies(testingLIST)},
+		# 	"message":"ASDaSD"
+		# }, 200
 
 
 		"""# Validate.

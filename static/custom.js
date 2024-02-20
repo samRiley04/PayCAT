@@ -32,6 +32,10 @@ let viewModeFS1path = ""
 let compareModeFS1path = ""
 let compareModeFS2path = ""
 
+//Not used
+const BADGES_RED = ["Shift missing"]
+const BADGES_YELLOW = ["Hours worked different", "Hour types different", "Pay rate different"]
+
 
 function newViewmode() {
   if (viewModeFS1path == "") {
@@ -62,7 +66,7 @@ function newViewmode() {
     });
 }
 
-//Shamelessly plagarised from stack overflow
+//Shamelessly plagarised from stack overflow and modified for non US dates
 function isValidDate(dateString) {
     // First check for the pattern
     if(!/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(dateString))
@@ -87,6 +91,14 @@ function isValidDate(dateString) {
     // Check the range of the day
     return day > 0 && day <= monthLength[month - 1];
 };
+
+function prettyMoneyString(anyFloat) {
+  let strVersion = "$"+anyFloat.toFixed(2).toString()
+  if (strVersion[1] == "-") { // if negative, swap the dollar and minus signs around
+    strVersion = "-$"+strVersion.substring(2)
+  }
+  return strVersion
+}
 
 function validateComparemodeInputs() {
   //If the input field is empty, and if its NOT hidden
@@ -391,7 +403,6 @@ function loadEntry(pdfID) {
           $('#content-column').find(headerID).find("#header-totalPTI").text("$"+whichever["totalPretaxIncome"])
         }
       } else if (Object.hasOwn(data["data"], "compare")) {
-        alert("real compare mode:")
         let study = data["data"]["compare"]
         let newID = pdfID+"-entry-body"
         $('#content-column').html($("#template-storage").find("#compareMode-body-new").clone().attr("id",newID))
@@ -413,7 +424,22 @@ function loadEntry(pdfID) {
           let noticeID = discrepancyDate+"-notice"
           $("#"+newID).find("#body-rowcol").append($("#"+newID).find("#notice-template").clone().attr("id",noticeID))
           $("#"+noticeID).removeAttr('hidden');
-          // Fill the card elements.
+          // BADGES and descriptions
+          let uniqueList = []
+          for (badge of discrepancies[discrepancyDate]["badges"]) {
+            let bTitle = Object.keys(badge)[0] //only one key per object for a badge, so this is safe
+            if (!uniqueList.includes(bTitle)) {
+              if (BADGES_RED.includes(bTitle)) {
+                $("#"+noticeID).find("#notice-header-badges").append("<span class='badge bg-secondary'>"+bTitle+"</span> ") //end space intentional, to separate sequential badges
+              } else {
+                $("#"+noticeID).find("#notice-header-badges").append("<span class='badge bg-secondary'>"+bTitle+"</span> ")
+              }
+              uniqueList.push(bTitle)
+            }
+            $("#"+noticeID).find("#notice-header-collapse").append($("#"+noticeID).find("#notice-header-collapse > #badge-desc").clone().attr('id',noticeID+"-"+bTitle).prepend(badge[bTitle]).removeAttr('hidden'))
+          }
+
+          // Fill the card elements. Also highlight.
           todo = {"left":0, "right":1}
           for (side in todo) {
             sideID = side+discrepancyDate+"-disc-card"
@@ -430,30 +456,76 @@ function loadEntry(pdfID) {
               $("#"+sideID).find(".collapse").attr("id", discrepancyDate+"-disc-collapse") //Don't specify left or right as both sides should open together if they're the same date.
             } else {
               //Otherwise make a ghost
-              $("#"+noticeID).find("#notice-body-"+side).append($(noticeID).find("#item-template-ghost").clone().attr('id',sideID))
+              $("#"+noticeID).find("#notice-body-"+side).append($("#"+noticeID).find("#item-template-ghost").clone().attr('id',sideID))
               $("#"+sideID).removeAttr('hidden')
-              $("#"+sideID).find(".card-header").attr("href", "") //The ghost shouldn't open it's collapse.
+              $("#"+sideID).find(".card-header").attr("href", "#"+discrepancyDate+"-disc-collapse") //The ghost shouldn't open it's collapse.
               $("#"+sideID).find(".collapse").attr("id", sideID+"-collapse-DONTOPEN")
             }
-            
+            $("#"+noticeID).find("#notice-header-collapse").attr("id",discrepancyDate+"-disc-collapse")
+            $("#"+sideID).find("#item-date").text(discrepancyDate)
+
+            $('#content-column').find("#"+newID+"-header-"+side).find("#header-PPE").text("PPE " + study[todo[side]]["payPeriodEnding"])
+            $('#content-column').find("#"+newID+"-header-"+side).find("#header-name-employer").text(study[todo[side]]["employeeName"].toUpperCase() + "  /  " + study[todo[side]]["employer"].toUpperCase())
+            $('#content-column').find("#"+newID+"-header-"+side).find("#header-totalPTI").text("$"+study[todo[side]]["totalPretaxIncome"])  
+
+            let sumAmount = 0
+            let givenDateEntry = study[todo[side]]["data"][discrepancyDate]
+            //Sometimes a date entry is not in both lists (e.g. in "Shift missing error")
+            if (typeof givenDateEntry == 'undefined'){
+              continue
+              //No need to fill it's hours types entries in that case.
+            }
+            //ITERATE hour types and fill them out.
+            for (let i = 0; i < givenDateEntry.length; i++) {
+              let entry = givenDateEntry[i]
+              sumAmount += parseFloat(entry["amount"])
+              //'Item entries' are 'text/units+rate/amount' e.g. "BASE HOURS (12@43.223)      $123.45"
+              $("#"+sideID).find("#item-entry-container").append($('#'+sideID).find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
+              $("#"+sideID).find("#item-entry"+i).removeAttr('hidden')
+              //Only if they're defined, fill units/rate
+              if (typeof entry["units"] !== 'undefined' && /\d+/.test(entry["units"].replace(".",""))) { //this regex skips units/rates entries that aren't numbers
+                $("#"+sideID).find("#item-entry"+i).find("#item-units").text("("+entry["units"] + "h")
+                $("#"+sideID).find("#item-entry"+i).find("#item-units").clone()
+                $("#"+sideID).find("#item-entry"+i).find("#item-rate").text(prettyMoneyString(parseFloat(entry["rate"]))+")")
+                $("#"+sideID).find("#item-entry"+i).find("#item-entry-at").removeAttr('hidden')
+              }
+              //If units are negative, emphasise this.
+              if (entry["units"] < 0) {
+                $("#"+sideID).find("#item-entry"+i).find("#item-unitsrate").addClass("text-danger-emphasis")
+              }
+              if (entry["amount"] < 0)  {
+                $("#"+sideID).find("#item-entry"+i).find("#item-amount").addClass("text-danger")
+              }
+              $("#"+sideID).find("#item-entry"+i).find("#item-description").text(entry["description"])
+              $("#"+sideID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"])))
+              //HIGHLIGHTING
+              for (highlight of discrepancies[discrepancyDate]["highlights"]) {
+                if (Object.keys(highlight)[0] == entry["description"]) { //again, only one key per obj
+                  //We need to highlight something in this hours-type entry.
+                  if (highlight[Object.keys(highlight)[0]] == "description") {
+                    $("#"+sideID).find("#item-entry"+i).find("#item-description").addClass("mark")  
+                  } else {
+                    //If rate/units/amount are wrong, then total amount has to be marked also.
+                    $("#"+sideID).find("#item-total").addClass("mark") //this will be called multiple times, but is a far simpler implementation than saving a random variable to check later on
+                    if (highlight[entry["description"]] == "rate") {
+                      $("#"+sideID).find("#item-entry"+i).find("#item-rate").addClass("mark")
+                    } else if (highlight[entry["description"]] == "units") {
+                      $("#"+sideID).find("#item-entry"+i).find("#item-units").addClass("mark")
+                    } else if (highlight[entry["description"]] == "amount") {
+                      $("#"+sideID).find("#item-entry"+i).find("#item-amount").addClass("mark")
+                    }
+                  }
+                }
+              }
+            }
+            if (sumAmount < 0) {
+              $("#"+sideID).find("#item-total").removeClass("text-success")
+              $("#"+sideID).find("#item-total").addClass("text-danger")
+            }
+            $("#"+sideID).find("#item-total").text(prettyMoneyString(sumAmount))      
           }
 
-          
-
-          // // Iterate badges, and add them.
-          // for (badge in discrepancies[discrepancyDate]["badges"]) {
-            
-          // }
-
-          // // Iterate highlights, and highlight
-          // for (highlight in discrepancies[discrepancyDate]["highlights"]) {
-
-          // }
-
         }
-
-
-
       } else {
         // ?? what else is there.
         alert("invalid type. Unable to load.")

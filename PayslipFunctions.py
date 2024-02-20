@@ -374,7 +374,7 @@ def ingestPDF(fileName):
 				# (2) DATE - SECOND DATE - DESCRIPTION - AMOUNT
 				# Use this information to trickily collect the last data and then input it into the dict.
 				if wordsList[1].count("-") == 2:
-					amount = wordsList[-1]
+					amount = wordsList[-1].replace(",", "") #remove commas
 					psDict[date].append({"description":description,
 									"amount":amount})
 				else:

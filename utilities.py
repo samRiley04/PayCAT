@@ -57,6 +57,9 @@ PAY_RATE_D = "The pay rate is different for {hourtype} on this date. Have you en
 HOURS_WORKED = "Hours worked different"
 HOURS_WORKED_D = "The hours worked is different for {hourtype} on this date."
 
+HOURS_NEGATIVE = "Negative hours"
+HOURS_NEGATIVE_D = "The hours for {hourtype} on this date have been entered as a negative number. You should check if this is correct."
+
 HOUR_TYPE = "Hour types different"
 HOUR_TYPE_D = "{hourtype} is not listed in both files for this date."
 
@@ -98,6 +101,7 @@ def findDiscrepancies(compareList):
 			discrepancies.update({
 				givenDate: badgesAndHighlights
 			})
+			# Before we continue, quick check for any cardinal sins
 			continue
 			# Because if the shift is missing, doesn't matter if there are other errors (there will be)
 
@@ -155,6 +159,14 @@ def findDiscrepancies(compareList):
 					highlights.append({
 						hourType:"units"
 					})
+				if float(leftValues["units"]) < 0:
+					badges.append({
+						HOURS_NEGATIVE:HOURS_NEGATIVE_D.format(hourtype=hourType)
+					})
+					highlights.append({
+						hourType:"units"
+					})
+
 			except KeyError:
 				pass
 			try:
