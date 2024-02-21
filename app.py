@@ -40,6 +40,8 @@ with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
 		shlf["WAGE_BASE_RATE"] = None
 	if not "USUAL_HOURS" in shlf:
 		shlf["USUAL_HOURS"] = None
+	if not "EMPLOYEE_NAME" in shlf:
+		shlf["EMPLOYEE_NAME"] = None
 #?Do YAML config.
 
 def isConfigDone():
@@ -100,18 +102,17 @@ class studiesDataList(Resource):
 				if parsed_args["filePath"].endswith(".pdf"):
 					shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
 				elif parsed_args["filePath"].endswith(".xlsx"):
-					parsed_args["employeeName"] = "Samuel Riley"
 					with shelve.open(SHELF_NAME_SETTINGS) as shlf:
 						baseRate = shlf["WAGE_BASE_RATE"]
 						usualHours = shlf["USUAL_HOURS"]
-					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], "C", datetime.strptime("2023-01-30", "%Y-%m-%d"), datetime.strptime("2023-02-12", "%Y-%m-%d")), baseRate, usualHours)
+					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], parsed_args["rosterType"], datetime.strptime(parsed_args["startDate"], "%d-%m-%Y"), datetime.strptime(parsed_args["endDate"], "%d-%m-%Y")), baseRate, usualHours)
 					shelfEntry = {
 						"name":parsed_args["filePath"].split("/")[-1],
 						"employeeName": parsed_args["employeeName"],
 						"employer": "Unknown",
 						"totalPretaxIncome": ut.deepSumAmounts(dataDict),
-						"payPeriodStart": "30-01-2023",
-						"payPeriodEnding": "12-02-2023",
+						"payPeriodStart": parsed_args["startDate"],
+						"payPeriodEnding": parsed_args["endDate"],
 						"data": dataDict
 					}
 				else:
@@ -133,6 +134,12 @@ class studiesDataList(Resource):
 				return {
 					"data": None,
 					"message":"File not found."
+				}, 404
+			except(ValueError) as e:
+				print(str(e))
+				return {
+					"data": None,
+					"message": "Error: " + str(e)
 				}, 404
 		# CREATE COMPARE MODE ---
 		elif parsed_args["mode"] == "compare":
@@ -186,14 +193,15 @@ class studiesDataList(Resource):
 						"message": "Error: " + str(e)
 					}, 404
 			# Entry now constructed to standard, lets identify the discrepancies.
-			discrepancies = ut.findDiscrepancies(shelfEntry)
+			discrepancies, globalDiscrepancies = ut.findDiscrepancies(shelfEntry)
 
 			with shelve.open(SHELF_NAME, writeback=True) as shlf:
 				newlyMadeID = str(shlf["_NEXT_ID"])
 				shlf['_NEXT_ID'] += 1
 				shlf[newlyMadeID] = {
 					"compare":shelfEntry,
-					"discrepancies": discrepancies
+					"discrepancies": discrepancies,
+					"globalDiscrepancies": globalDiscrepancies
 				}
 				return {
 					"data":shlf[newlyMadeID],
@@ -220,7 +228,7 @@ class studyData(Resource):
         "payPeriodStart": "30-1-2023",
         "payPeriodEnding": "12-2-2023",
         "data": {
-            "30-01-2023": [
+            "15-01-2023": [
                 {
                     "description": "BASE HOURS",
                     "units": "8.00",
@@ -532,9 +540,10 @@ class studyData(Resource):
     }
 		]
 
-		# ### TEMPORARY 
+		### TEMPORARY 
+		# disco, globDisco = ut.findDiscrepancies(testingLIST)
 		# return {
-		# 	"data": {"compare":testingLIST, "discrepancies":ut.findDiscrepancies(testingLIST)},
+		# 	"data": {"compare":testingLIST, "discrepancies":disco, "globalDiscrepancies":globDisco},
 		# 	"message":"ASDaSD"
 		# }, 200
 
@@ -607,7 +616,8 @@ class settings(Resource):
 		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
 			toReturn.update({
 				"wage-base-rate":shlf["WAGE_BASE_RATE"],
-				"usual-hours":shlf["USUAL_HOURS"]
+				"usual-hours":shlf["USUAL_HOURS"],
+				"employee-name":shlf["EMPLOYEE_NAME"]
 				})
 		return {
 			"data":toReturn,
@@ -618,6 +628,7 @@ class settings(Resource):
 		parser = reqparse.RequestParser()
 		parser.add_argument("wage-base-rate")
 		parser.add_argument("usual-hours")
+		parser.add_argument("employee-name")
 		parsed_args = parser.parse_args()
 		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
 			wrong = {}
@@ -629,6 +640,10 @@ class settings(Resource):
 				shlf["USUAL_HOURS"] = float(parsed_args["usual-hours"])
 			else:
 				wrong.update({"Usual hours":parsed_args["usual-hours"]})
+			if not (parsed_args["employee-name"] is None):
+				shlf["EMPLOYEE_NAME"] = parsed_args["employee-name"]
+			else:
+				wrong.update({"Employee name":parsed_args["employee-name"]})
 		if not wrong == {}:
 			returnS = "The following inputs were invalid: "
 			for k,i in wrong.items():

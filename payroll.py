@@ -5,7 +5,18 @@ import locale
 locale.setlocale(locale.LC_ALL, '')
 
 import urllib.request
+import math
+from decimal import *
+getcontext().prec = 26
+getcontext().rounding = ROUND_HALF_DOWN
+DEC_EIGHTPLACES = Decimal(10) ** -8
+DEC_FOURPLACES = Decimal(10) ** -4
+DEC_TWOPLACES = Decimal(10) ** -2
 
+def multi(a, b, sf=DEC_EIGHTPLACES):
+	pass
+
+	
 """
 rosterDict = {
 	"2023-10-31": "0700-1900",
@@ -113,6 +124,22 @@ def createDateRangeYears(start,end):
 		x += 1
 	return returnList
 
+# Shamelessly stolen from a https://kodify.net/python/math/round-decimals/
+def round_decimals_down(number:float, decimals:int=2):
+    """
+    Returns a value rounded down to a specific number of decimal places.
+    """
+    if not isinstance(decimals, int):
+        raise TypeError("decimal places must be an integer")
+    elif decimals < 0:
+        raise ValueError("decimal places has to be 0 or more")
+    elif decimals == 0:
+        return math.floor(number)
+
+    factor = 10 ** decimals
+    return math.floor(number * factor) / factor
+
+
 #hoursWorkedAlready (float) - the employee has worked this many hours already this fortnight.
 #hoursAmount (float) - the employe now is working this many hours, and we need to know what portions of it will be allocated to overtime rates.
 #returnValues (list) containing {"rate":rate, "hours":hours} objects
@@ -191,7 +218,7 @@ def expandForBaseHours(pensList):
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
 def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 	if rosterDict == {}:
-		raise ValueError("Found no recognisable dates in the roster.")
+		raise ValueError("Found no recognisable dates in the roster for this given range.")
 	WAGE_BASE_RATE = wageBaseRate
 	USUAL_HOURS = usualHours
 	# -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE -------- SECTION ONE
@@ -202,7 +229,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 
 	baseHours = 0
 	overtimeHours = 0
-	dirtyAmountSum = 0 #Not used currently.
+	dirtyAmountSum = Decimal(0) #Not used currently.
 
 	# Generate the superior tempDict (datetime obj instead of strings)
 	rangeLower = None
@@ -497,34 +524,30 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 
 		# Finally, iterate through the list and create the output format.
 		pensListProper = []
+
 		for entry in pensList:
 			# Make sure to record penalties correctly by separating base hours and penalty rate values
 			if entry["desc"] in DESCRIPTORS_SHIFTS_PENS.values():
 				#Just have to modify the rate before continuing.
-				rateProper = round((entry["rate"]-1)*WAGE_BASE_RATE,4)
-				#zero padding the rate to 4 places after decimal point.
-				s = str(rateProper).split(".")
-				rateProperPadded = ".".join((s[0], s[1].ljust(4,"0")))
-				dirtyAmountSum += rateProper*entry["hours"]
+				rateProper = (Decimal(entry["rate"]-1)*Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES)
+				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
+				dirtyAmountSum += thisAmount
 				pensListProper.append({
 					"description":entry["desc"],
 					"units":str(entry["hours"]),
-					"rate":rateProperPadded,
-					"amount":locale.currency(rateProper*entry["hours"], symbol=False)
+					"rate":str(rateProper),
+					"amount":locale.currency(thisAmount, symbol=False)
 				})
 			else:
 				#Add as per usual
-				rateProper = round(entry["rate"]*WAGE_BASE_RATE,4)
-				s = str(rateProper).split(".")
-				rateProperPadded = ".".join((s[0], s[1].ljust(4,"0")))
-
-
-				dirtyAmountSum += rateProper*entry["hours"]
+				rateProper = (Decimal(entry["rate"])*Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES)
+				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
+				dirtyAmountSum += thisAmount
 				pensListProper.append({
 					"description":entry["desc"],
 					"units":str(entry["hours"]),
-					"rate":rateProperPadded,
-					"amount":locale.currency(rateProper*entry["hours"], symbol=False)	
+					"rate":str(rateProper),
+					"amount":locale.currency(thisAmount, symbol=False)	
 				})
 		returnDict.update({shift.strftime("%d-%m-%Y"):pensListProper})
 	if debug:

@@ -36,42 +36,12 @@ let compareModeFS2path = ""
 const BADGES_RED = ["Shift missing"]
 const BADGES_YELLOW = ["Hours worked different", "Hour types different", "Pay rate different"]
 
-
-function newViewmode() {
-  if (viewModeFS1path == "") {
-    //Tell user to select a file and abort
-    $("#newEntryModal").find("#viewMode-FS1").addClass("is-invalid")
-    return 0;
-  } 
-  // Otherwise, submit a new POST for server to ingest an entry.
-  $.when($.ajax({
-      url: "http://localhost:8000/api/studydata",
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({
-        "filePath":viewModeFS1path,
-        "mode":"view"
-      }),
-      timeout: 4000, //3 minutes
-      headers: {
-        'Access-Control-Allow-Origin': '*'
-      }
-    })).done(function (data) {
-      $('#newEntryModal').modal('hide');
-      updateSidebarList();
-      clearFileSelect();
-    }).fail(function (data) {
-      alert("failed to add project.")
-      //$('#card-container').html("<span class=\"fw-bold text-danger\">Failed to load PDF.</span>")
-    });
-}
-
 //Shamelessly plagarised from stack overflow and modified for non US dates
 function isValidDate(dateString) {
     // First check for the pattern
     if(!/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(dateString))
         return false;
-    dateString = dateString.replace(/[-.]/, "/")
+    dateString = dateString.replaceAll(/[-.]/g, "/")
     // Parse the date parts to integers
     var parts = dateString.split("/");
     var day = parseInt(parts[0], 10);
@@ -92,6 +62,17 @@ function isValidDate(dateString) {
     return day > 0 && day <= monthLength[month - 1];
 };
 
+function zeroPadDate(dateString) { //ALSO sanitises date strings to use dashes only
+  let dParts = dateString.replaceAll(/[-/.]/g, "-").split("-")
+  if (dParts[0].length != 2) {
+    dParts[0] = "0"+dParts[0]
+  }
+  if (dParts[1].length != 2) {
+    dParts[1] = "0"+dParts[1]
+  }
+  return dParts.join("-");
+}
+
 function prettyMoneyString(anyFloat) {
   let strVersion = "$"+anyFloat.toFixed(2).toString()
   if (strVersion[1] == "-") { // if negative, swap the dollar and minus signs around
@@ -105,13 +86,13 @@ function validateComparemodeInputs() {
   let fail = false
   if (compareModeFS1path == "") {
     $("#newEntryModal").find("#compareMode-FS1").addClass("is-invalid")
-    abort = true
+    fail = true
   } else {
     $("#newEntryModal").find("#compareMode-FS1").removeClass("is-invalid") 
   }
   if (compareModeFS2path == "") {
     $("#newEntryModal").find("#compareMode-FS2").addClass("is-invalid")
-    abort = true
+    fail = true
   } else {
     $("#newEntryModal").find("#compareMode-FS2").removeClass("is-invalid")
   }
@@ -131,14 +112,77 @@ function validateComparemodeInputs() {
       $(id).removeClass("is-invalid")
     }
   }
-  if (fail) {return false}
+  if (fail) { return false }
   return true
+}
+
+function validateViewmodeInputs() {
+  //If the input field is empty, and if its NOT hidden
+  let fail = false
+  if (viewModeFS1path == "") {
+    $("#newEntryModal").find("#viewMode-FS1").addClass("is-invalid")
+    fail = true
+  } else {
+    $("#newEntryModal").find("#viewMode-FS1").removeClass("is-invalid") 
+  }
+
+  let daList = []
+  if (!$(".viewMode-roster-fields").is("[hidden]")) {
+     daList = daList.concat(["#viewMode-empName", "#viewMode-endDate", "#viewMode-startDate"])
+  }
+
+  for (id of daList) {
+    if (($(id).val() == "") || (id.includes("Date") && !isValidDate($(id).val())) ) {
+      $(id).addClass("is-invalid")
+      fail = true
+    } else {
+      $(id).removeClass("is-invalid")
+    }
+  }
+  if (fail) { return false }
+  return true
+}
+
+function newViewmode() {
+  if (!validateViewmodeInputs()) {
+    return 0;
+  } 
+  sendObj = {
+    "mode":"view",
+    "filePath":viewModeFS1path
+  }
+
+  if (viewModeFS1path.endsWith(".xlsx")) {
+    sendObj = {...sendObj, "rosterType": $("#newEntryModal").find("[name=viewMode-RT]:checked").attr("contentz"),
+      "employeeName": $("#viewMode-empName").val(),
+      "startDate": zeroPadDate($("#viewMode-startDate").val()),
+      "endDate": zeroPadDate($("#viewMode-endDate").val())
+    }
+  }
+
+  // Otherwise, submit a new POST for server to ingest an entry.
+  $.when($.ajax({
+      url: "http://localhost:8000/api/studydata",
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(sendObj),
+      timeout: 4000, //3 minutes
+      headers: {
+        'Access-Control-Allow-Origin': '*'
+      }
+    })).done(function (data) {
+      $('#newEntryModal').modal('hide');
+      updateSidebarList();
+      clearFileSelect();
+    }).fail(function (jqXHR) {
+      alert(jqXHR["responseJSON"]["message"])
+    });
 }
 
 function newComparemode() {
   // INPUT VALIDATION
   if (!validateComparemodeInputs()) {
-    //return 0
+    return 0
   }
 
   // Otherwise, submit a new POST for server to ingest an entry.
@@ -146,32 +190,20 @@ function newComparemode() {
     "filePath":compareModeFS1path,
     "filePath2":compareModeFS2path}
 
-  rosterType = null
-  rosterType2 = null
   if (compareModeFS1path.endsWith(".xlsx")) {
     sendObj = {...sendObj, "rosterType": $("#newEntryModal").find("[name=compareMode-RT1]:checked").attr("contentz"),
       "employeeName": $("#compareMode-empName").val(),
-      "startDate": $("#compareMode-startDate").val(),
-      "endDate": $("#compareMode-endDate").val()
+      "startDate": zeroPadDate($("#compareMode-startDate").val()),
+      "endDate": zeroPadDate($("#compareMode-endDate").val())
     }
   }
   if (compareModeFS2path.endsWith(".xlsx")) {
     sendObj = {...sendObj, "rosterType2": $("#newEntryModal").find("[name=compareMode-RT2]:checked").attr("contentz"),
       "employeeName2": $("#compareMode-empName2").val(),
-      "startDate2": $("#compareMode-startDate2").val(),
-      "endDate2": $("#compareMode-endDate2").val()
+      "startDate2": zeroPadDate($("#compareMode-startDate2").val()),
+      "endDate2": zeroPadDate($("#compareMode-endDate2").val())
     }
   }
-
-  // sendObj = {
-  //   "mode":"compare",
-  //   "filePath":"/Users/sam/Documents/GitHub/PayCAT/test.pdf",
-  //   "filePath2":"/Users/sam/Documents/GitHub/PayCAT/TESTING/OPH.xlsx",
-  //   "rosterType2":"C",
-  //   "employeeName2":"Samuel Riley",
-  //   "startDate2":"30-01-2021",
-  //   "endDate2":"12-02-2021"
-  // }
 
   $.when($.ajax({
       url: "http://localhost:8000/api/studydata",
@@ -281,7 +313,11 @@ function loadEntry(pdfID) {
         let datesDict = study["data"]; //sorry for being confusing. See the API documentation.
         let newID = pdfID+"-entry" //IDs are just an integer, could possibly get lost/cause issues if using only that as ID's?
         //Clear the main container and add the new content type.
-        $('#content-column').html($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header"))
+        if (study["name"].endsWith(".pdf")) {
+          $('#content-column').html($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header"))
+        } else if (study["name"].endsWith(".xlsx")) {
+          $('#content-column').html($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header"))
+        }
         //Then add the body part.
         $('#content-column').append($("#template-storage").find("#viewMode-body").clone().attr("id",newID+"-body"))
         //Now iterate through the data in this entry and generate a card for each date.
@@ -289,6 +325,11 @@ function loadEntry(pdfID) {
           //Clone a new card in the container, rename it's ID as the date, and remove hidden.
           let cardID = date+"-card"
           $('#content-column').find('#'+newID+"-body").find("#card-container").append($("#"+newID+"-body").find("#item-template").clone().attr("id",cardID).removeAttr("hidden"))
+          if (study["name"].endsWith(".pdf")) {
+            $('#content-column').find("#"+cardID+" > .card-header").addClass("sam-payslip-theme-light")
+          } else if (study["name"].endsWith(".xlsx")) {
+            $('#content-column').find("#"+cardID+" > .card-header").addClass("sam-roster-theme-light")
+          }
           //Uniqify the collapse IDs (generic)
           $('#content-column').find('#'+newID+"-body").find('#'+cardID+" > .card-header").attr("href", "#"+date+"-collapse")
           $('#content-column').find('#'+newID+"-body").find('#'+cardID+" > .collapse").attr("id", date+"-collapse")
@@ -317,7 +358,7 @@ function loadEntry(pdfID) {
               $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").addClass("text-danger")
             }
             $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-description").text(entry["description"])
-            $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").text("$"+entry["amount"])
+            $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"]))) 
           }
           //finally record the sum of all amounts
           $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
@@ -392,7 +433,7 @@ function loadEntry(pdfID) {
                 $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-amount").addClass("text-danger")
               }
               $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-description").text(entry["description"])
-              $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-amount").text("$"+entry["amount"])
+              $(bodyID).find('#'+cardID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"])))
             }
             //finally record the sum of all amounts
             $(bodyID).find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
@@ -417,6 +458,14 @@ function loadEntry(pdfID) {
         } else if (study[1]["name"].endsWith(".xlsx")) {
           $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-right"))
         }
+        //Do global discrepancy alerts
+        let x = 1
+        for (alertDesc of data["data"]["globalDiscrepancies"]) {
+          $("#"+newID).find("#body-rowcol").prepend($("#"+newID).find("#global-alert-template").clone().attr('id',newID+"-gblalert-"+x.toString()).removeAttr('hidden'))
+          $("#"+newID).find("#"+newID+"-gblalert-"+x.toString()).find("#alert-text").text(alertDesc)
+          x+=1
+        }
+
         // FILL THE BODY
         let discrepancies = data["data"]["discrepancies"]
         for (discrepancyDate in discrepancies) {
@@ -486,7 +535,7 @@ function loadEntry(pdfID) {
               if (typeof entry["units"] !== 'undefined' && /\d+/.test(entry["units"].replace(".",""))) { //this regex skips units/rates entries that aren't numbers
                 $("#"+sideID).find("#item-entry"+i).find("#item-units").text("("+entry["units"] + "h")
                 $("#"+sideID).find("#item-entry"+i).find("#item-units").clone()
-                $("#"+sideID).find("#item-entry"+i).find("#item-rate").text(prettyMoneyString(parseFloat(entry["rate"]))+")")
+                $("#"+sideID).find("#item-entry"+i).find("#item-rate").text(parseFloat(entry["rate"])+")")
                 $("#"+sideID).find("#item-entry"+i).find("#item-entry-at").removeAttr('hidden')
               }
               //If units are negative, emphasise this.
@@ -569,7 +618,7 @@ function userSelectFile() {
   });
 }
 
-//Rests all variables to empty, file-selectors to empty, and removes all invalid labels.
+//Rests all variables to empty, file-selectors to empty, removes all invalid labels, and pre-fills employee-name.
 function clearFileSelect() {
   viewModeFS1path = "";
   compareModeFS1path = "";
@@ -581,23 +630,34 @@ function clearFileSelect() {
   $("#newEntryModal").find("#compareMode-FS2").removeClass("is-invalid")
   $("#newEntryModal").find("#compareMode-FS2").val("")
 
-  $(".compareMode-F1-roster-fields").find(".btn-check").each(function() {
+  $(".compareMode-F1-roster-fields, .compareMode-F2-roster-fields, .viewMode-roster-fields").find(".btn-check").each(function() {
       $(this).prop("checked", false)
   })
   $(".sam-should-be-checked").each(function() {
     $(this).prop("checked", true)
   })
-  $(".compareMode-F1-roster-fields, .compareMode-F2-roster-fields").each(function() {
+  $(".compareMode-F1-roster-fields, .compareMode-F2-roster-fields, .viewMode-roster-fields").each(function() {
     $(this).attr('hidden', true)
     $(this).find(".clear-on-reset").each(function() {
       $(this).val("")
     })
   })
 
-
-  $(".compareMode-F2-roster-fields").each(function() {
-    $(this).attr('hidden', true)
-  })
+  //Prefill employee-name from the stored settings.
+  $.when($.ajax({
+    url: "http://localhost:8000/api/settings",
+    type: 'GET',
+    timeout: 4000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+    $("#newEntryModal").find("#viewMode-empName, #compareMode-empName, #compareMode-empName2").each(function() {
+      $(this).val(data["data"]["employee-name"])
+    })
+  }).fail(function (data) {
+    alert("Failed preload settings. Message: "+data["message"]);
+  });
 }
 
 //fsID includes # already.
@@ -620,7 +680,13 @@ function fillFileSelect(fsID) {
     if (fsID == "#viewMode-FS1") {
       viewModeFS1path = data["data"]
       if (unhideOptions) {
-        alert("unhide viewmode roster options")
+        $(".viewMode-roster-fields").each(function() {
+          $(this).attr('hidden', false)
+        })
+      } else {
+        $(".viewMode-roster-fields").each(function() {
+          $(this).attr('hidden', true)
+        })
       }
     } else if (fsID == "#compareMode-FS1") {
       compareModeFS1path = data["data"]
@@ -667,7 +733,7 @@ function loadExistingSettings() {
       $("#settingsModal").attr("data-bs-keyboard", true)
     }
 
-    $.when($.ajax({
+  $.when($.ajax({
     url: "http://localhost:8000/api/settings",
     type: 'GET',
     timeout: 4000,
@@ -680,6 +746,7 @@ function loadExistingSettings() {
     $("#settingsModal").find("#wage-base-rate-input").val(data["data"]["wage-base-rate"])
     $("#settingsModal").find("#usual-hours-input").val(data["data"]["usual-hours"])
     $("#settingsModal").find("#usual-hours-input").removeClass("is-invalid")
+    $("#settingsModal").find("#employee-name-input").val(data["data"]["employee-name"])
   }).fail(function (data) {
     alert("Failed to get settings. Message: "+data["message"]);
   });
@@ -724,6 +791,9 @@ function submitSettings(modalID) {
     } else if (checkREendwithdec.test(usualhours)) { //trim the .000000 however many zeroes.
       usualhours = usualhours.split(".")[0]
     }
+    // Doesn't validate employee name.
+    let employeename = $("#"+modalID).find("#employee-name-input").val().trim()
+
     if (abort) {return 0}
 
     $.when($.ajax({
@@ -732,7 +802,8 @@ function submitSettings(modalID) {
     contentType: 'application/json',
     data: JSON.stringify({
       "wage-base-rate":wage,
-      "usual-hours":usualhours
+      "usual-hours":usualhours,
+      "employee-name":employeename
     }),
     timeout: 4000,
     headers: {
@@ -760,7 +831,7 @@ function confirmSettingsNotUnset() {
       'Access-Control-Allow-Origin': '*'
     }
   })).done(function (data) {
-    if (data["data"]["wage-base-rate"] == null || data["data"]["usual-hours"] == null) { //If user needs to set default settings.
+    if (data["data"]["wage-base-rate"] == null || data["data"]["usual-hours"] == null || data["data"]["employee-name"] == null) { //If user needs to set default settings.
       validSettings = false;
     } else {
       validSettings = true;

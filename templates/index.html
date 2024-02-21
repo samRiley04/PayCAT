@@ -76,7 +76,6 @@
             <span class="fs-4 fw-semibold">Studies</span>
           </li>
         </div>
-
       </div>
     </div>
     <!-- Content column -->
@@ -126,7 +125,7 @@
       <div class="col" id='card-container'>
         <!-- TEMPLATE CARD -->
         <div class="card my-1" id='item-template' hidden>
-          <div class="card-header sam-payslip-theme-light" role="button" data-bs-toggle="collapse" href="#collapseID">
+          <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseID">
             <div class="row">
               <div class="col">
                 <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
@@ -248,6 +247,15 @@
                 <div class="h3 text-grey text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">DISCREPANCIES</div>
               </div>
             </div>
+            <div hidden class="row" id='global-alert-template'> 
+              <div class="col">
+                <div class="alert alert-warning" role="alert">
+                  <img src="{{ url_for('static', filename='/icons/exclamation-triangle.svg') }}" role="img" style='scale: 1.2; opacity: 0.5; transform: translate(-3px,-2px);'>
+                  <span id='alert-text'> 
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <div id="notice-template" hidden> <!-- noticeID -->
               <div class="row">
@@ -290,7 +298,7 @@
                     <div class="collapse" id="collapseIDk">
                       <div class="card card-body py-2" id='item-entry-container'>
                         <div hidden class="row align-items-center" id='item-entry' >
-                          <div class="col">
+                          <div class="col-auto">
                            <span class="fw-light fs-6 fst-italic" id='item-description'></span>
                           </div>
                           <div class="col text-start">
@@ -298,7 +306,7 @@
                             <span hidden id='item-entry-at' class="fw-lighter fs-6 fst-italic text-secondary"> @ </span>
                             <span class="fw-lighter fs-6 fst-italic text-secondary" id='item-rate'></span>
                           </div>
-                          <div class="col-auto text-end">
+                          <div class="col text-end">
                           <span class="fw-medium fs-6" id='item-amount'></span>
                           </div>
                         </div>
@@ -385,6 +393,53 @@
 
   </div>
 
+<!-- 
+<p>In order for the pay checker to accurately process a roster file selected by the user, it has to know some information ahead of time. One very useful piece of information is what 'format' a roster is in.
+        This refers to the orientation of the rows and columns in the roster - specifically whether the <b>dates</b> are in rows or columns, where the <b>shift times are located</b>, and where the <b>employee's name</b> is located.
+        There are three possible roster formats:</p> -->
+
+<!-- OffCanvas (for explaining roster types-->
+<div class="offcanvas offcanvas-bottom sam-offcanvas-above-modal" tabindex="-1" id="offcanvasRosterTypeExplainer">
+  <div class="offcanvas-header">
+    <h4 class="offcanvas-title fw-bold" id="offcanvasBottomLabel">What is "Roster Format"?</h4>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body small">
+    <div class="row">
+      <div class="col">
+        <p>In order for the pay checker to accurately process a roster file selected by the user, it has to know some information ahead of time. One very useful piece of information is what 'format' a roster is in.
+        This refers to the orientation of the rows and columns in the roster - specifically whether the <b>dates</b> are in rows or columns, where the <b>shift times are located</b>, and where the <b>employee's name</b> is located.
+        There are three possible roster formats:</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col border-secondary border-start border-top border-3 rounded-top-3 p-2">
+        <div class='h5 fw-bold'>Type A</div>
+        <p><span class='sam-text-ocre fw-bold'>Dates horizontally</span>, <span class="sam-text-sea fw-bold">shift times vertically</span>, and <span class="sam-text-watermelonrind fw-bold">names in the spreadsheet body</span>.</p>
+      </div>
+      <div class="col border-secondary border-start border-top border-3 rounded-top-3 p-2">
+        <div class='h5 fw-bold'>Type B</div>
+        <p><span class='sam-text-ocre fw-bold'>Dates horizontally</span>, <span class="sam-text-watermelonrind fw-bold">names vertically</span>, and <span class="sam-text-sea fw-bold">shift times in the spreadsheet body</span>.</p>
+      </div>
+      <div class="col border-secondary border-start border-top border-3 rounded-top-3 p-2">
+        <div class='h5 fw-bold'>Type C</div>
+        <p><span class="sam-text-watermelonrind fw-bold">Names horizontally</span>, <span class='sam-text-ocre fw-bold'>dates vertically</span>, and <span class="sam-text-sea fw-bold">shift times in the spreadsheet body</span>.</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col p-2 border-start border-secondary border-3">
+        <img class="" src="{{ url_for('static', filename='/pictures/TypeA.png') }}" style="width: 110%;"></img>
+      </div>
+      <div class="col p-2 border-start border-secondary border-3">
+        <img src="{{ url_for('static', filename='/pictures/TypeB.png') }}" style="width: 110%"></img>
+      </div>
+      <div class="col p-2 border-start border-secondary border-3">
+        <img src="{{ url_for('static', filename='/pictures/TypeC.png') }}" style="width: 110%"></img>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- Modals -->
 <div class="modal fade" id="newEntryModal" tabindex="-1">
@@ -405,36 +460,86 @@
       <div class="modal-body">
         <!-- MODAL FORM START -->
         <div class="row px-2">
-          <div class="col mx-1 py-2 rounded-top-2 bg-primary-subtle">
+          <div class="col mx-1 mb-2 py-2 rounded-2 bg-primary-subtle">
             <div class="mb-3">
-                <div class="mb-3">
-                  <legend class='badge bg-primary fs-4'>View Mode</legend>
-                  <div class="form-text">View a single payslip or roster in a neatly formatted, interactive package.</div>
-                </div>
+              <legend class='badge bg-primary fs-4'>View Mode</legend>
+              <div class="form-text">View a single payslip or roster in a neatly formatted, interactive package.</div>
             </div>
           </div>
 
-          <div class="col mx-1 mb-2 py-2 rounded-2 bg-danger-subtle">
+          <div class="col mx-1 mb-2 py-2 rounded-2 sam-comparemode-theme-subtle">
               <div class="mb-3">
-                <legend class='badge bg-danger fs-4'>Compare Mode</legend>
+                <legend class='badge fs-4 sam-comparemode-theme'>Compare Mode</legend>
                 <div class="form-text">Compare any two payslip-roster combinations. Generates a list of discrepancies between them, and displays it all in a neatly formatted, interactive package.</div>
               </div>
           </div>
         </div>
         <div class="row px-2">
-          <div class="col mx-1 py-2 rounded-bottom-2 bg-primary-subtle">
-            <form class="is-invalid">
-              <div class="mb-3">
-                <div class="input-group">
-                  <span class="input-group-text" onclick="fillFileSelect('#viewMode-FS1');" role='button'>Choose File</span>
-                    <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="viewMode-FS1" readonly>
+          <div class="col mx-1 py-2">
+            <div class="row rounded-2 bg-primary-subtle py-2 mb-3">
+              <div class="col">
+                <div class="mb-3">
+                  <label for="viewMode-FS1" class="form-label fw-bold">File</label>
+                  <div class="input-group">
+                    <span class="input-group-text" onclick="fillFileSelect('#viewMode-FS1');" role='button'>Choose File</span>
+                      <input type="text" class="form-control text-secondary" placeholder="No file chosen" id="viewMode-FS1" readonly>
+                    </div>
+                </div>
+
+                <div class="mb-3 viewMode-roster-fields" hidden>
+                  <div class="row">
+                    <div class="form-label">Roster format <button class='btn btn-sm btn-secondary' data-bs-toggle="offcanvas" data-bs-target="#offcanvasRosterTypeExplainer" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem; opacity: 0.75;">?</button></div>
+                    <div class="col pe-1">
+                      <div class="d-grid">
+                        <input type="radio" class="btn-check sam-should-be-checked" name="viewMode-RT" id="viewMode-typeA" autocomplete="off" contentz="A" checked>
+                        <label class="btn btn-outline-primary" for="viewMode-typeA">Type A</label>
+                      </div>
+                    </div>
+                    <div class="col px-1">
+                      <div class="d-grid">
+                        <input type="radio" class="btn-check" name="viewMode-RT" id="viewMode-typeB" autocomplete="off" contentz="B">
+                        <label class="btn btn-outline-primary" for="viewMode-typeB">Type B</label>
+                      </div>
+                    </div>
+                    <div class="col ps-1">
+                      <div class="d-grid">
+                        <input type="radio" class="btn-check" name="viewMode-RT" id="viewMode-typeC" autocomplete="off" contentz="C">
+                        <label class="btn btn-outline-primary" for="viewMode-typeC">Type C</label>
+                      </div>
+                    </div>
+                  </div> 
+                </div>
+                <div class="mb-3 viewMode-roster-fields" hidden>
+                  <label for="viewMode-empName" class="form-label">Your name</label>
+                  <input type="text" class="form-control clear-on-reset" id="viewMode-empName" >
+                  <div class="form-text">Ensure it matches exactly as your name appears in the roster.</div>
+                </div>
+                <div class="mb-3 viewMode-roster-fields" hidden>
+                  <div class="row">
+                    <div class="col">
+                      <label for="viewMode-startDate" class="form-label">Start date</label>
+                      <input type="text" class="form-control clear-on-reset" id="viewMode-startDate" placeholder="DD-MM-YYYY">
+                      <div class="invalid-feedback">Invalid date.</div>
+                    </div>
+                    <div class="col">
+                      <label for="viewMode-endDate" class="form-label">End date</label>
+                      <input type="text" class="form-control clear-on-reset" id="viewMode-endDate" placeholder="DD-MM-YYYY">
+                      <div class="invalid-feedback">Invalid date.</div>
+                    </div>
+                    <div class="form-text">Ensure you are always entering dates that correspond with a two-weekly pay period.</div>
                   </div>
+                </div>
               </div>
-            </form>
+            </div>
+            <div class="row"> 
+              <div class="col px-0">
+                <button type="button" class="btn btn-outline-primary" onclick="newViewmode();">Create View</button>
+              </div>
+            </div>
           </div>
           <div class="col mx-1 py-2">
               <!-- LEFT -->
-            <div class="row bg-danger-subtle rounded-2 py-2 mb-3">
+            <div class="row sam-comparemode-theme-subtle rounded-2 py-2 mb-3">
               <div class="col">
                 <div class="mb-3">
                   <label for="compareMode-FS1" class="form-label fw-bold">Left side</label>
@@ -445,30 +550,30 @@
                 </div>
                 <div class="mb-3 compareMode-F1-roster-fields" hidden>
                   <div class="row">
-                    <div class="form-label">Roster format</div>
+                    <div class="form-label">Roster format <button class='btn btn-sm btn-secondary' data-bs-toggle="offcanvas" data-bs-target="#offcanvasRosterTypeExplainer" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem; opacity: 0.75;">?</button></div>
                     <div class="col pe-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check sam-should-be-checked" name="compareMode-RT1" id="compareMode-1typeA" autocomplete="off" contentz="A" checked>
-                        <label class="btn btn-outline-danger" for="compareMode-1typeA">Type A</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-1typeA">Type A</label>
                       </div>
                     </div>
                     <div class="col px-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check" name="compareMode-RT1" id="compareMode-1typeB" autocomplete="off" contentz="B">
-                        <label class="btn btn-outline-danger" for="compareMode-1typeB">Type B</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-1typeB">Type B</label>
                       </div>
                     </div>
                     <div class="col ps-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check btn-outline-secondary" name="compareMode-RT1" id="compareMode-1typeC" autocomplete="off" contentz="C">
-                        <label class="btn btn-outline-danger" for="compareMode-1typeC">Type C</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-1typeC">Type C</label>
                       </div>
                     </div>
                   </div> 
                 </div>
                 <div class="mb-3 compareMode-F1-roster-fields" hidden>
                   <label for="compareMode-empName" class="form-label">Your name</label>
-                  <input type="text" class="form-control clear-on-reset" id="compareMode-empName" >
+                  <input type="text" class="form-control clear-on-reset" id="compareMode-empName">
                   <div class="form-text">Ensure it matches exactly as your name appears in the roster.</div>
                 </div>
                 <div class="mb-3 compareMode-F1-roster-fields" hidden>
@@ -488,7 +593,7 @@
                 </div>
               </div>
             </div>
-            <div class="row bg-danger-subtle rounded-2 py-2">
+            <div class="row sam-comparemode-theme-subtle rounded-2 py-2 mb-3">
               <div class="col">
                 <!-- RIGHT -->
                 <div class="mb-3">
@@ -500,23 +605,23 @@
                 </div>
                 <div class="mb-3 compareMode-F2-roster-fields" hidden>
                   <div class="row">
-                    <div class="form-label">Roster format</div>
+                    <div class="form-label">Roster format <button class='btn btn-sm btn-secondary' data-bs-toggle="offcanvas" data-bs-target="#offcanvasRosterTypeExplainer" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem; opacity: 0.75;">?</button></div>
                     <div class="col pe-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check sam-should-be-checked" name="compareMode-RT2" id="compareMode-2typeA" autocomplete="off" contentz="A" checked>
-                        <label class="btn btn-outline-danger" for="compareMode-2typeA">Type A</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-2typeA">Type A</label>
                       </div>
                     </div>
                     <div class="col px-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check" name="compareMode-RT2" id="compareMode-2typeB" autocomplete="off" contentz="B">
-                        <label class="btn btn-outline-danger" for="compareMode-2typeB">Type B</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-2typeB">Type B</label>
                       </div>
                     </div>
                     <div class="col ps-1">
                       <div class="d-grid">
                         <input type="radio" class="btn-check btn-outline-secondary" name="compareMode-RT2" id="compareMode-2typeC" autocomplete="off" contentz="C">
-                        <label class="btn btn-outline-danger" for="compareMode-2typeC">Type C</label>
+                        <label class="btn sam-comparemode-theme-btnoutline" for="compareMode-2typeC">Type C</label>
                       </div>
                     </div>
                   </div> 
@@ -543,14 +648,11 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="row p-2"> 
-          <div class="col">
-            <button type="button" class="btn btn-outline-primary" onclick="newViewmode();">Create View</button>
-          </div>
-          <div class="col">
-            <button type="button" onclick="newComparemode()" class="btn btn-outline-danger">Create Compare</button>
+            <div class="row"> 
+              <div class="col px-0">
+                <button type="button" onclick="newComparemode()" class="btn sam-comparemode-theme-btnoutline">Create Compare</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -623,6 +725,16 @@
                 Your usual hours is defined as the amount of hours you would work on "an ordinary working day".
               </div>
             </div>
+          </div>
+        </div>
+        <div class="row px-2">
+          <div class="col me-4">
+            <label for="employee-name-input" class="form-label">Your name</label>
+            <input id="employee-name-input" type="text" class="form-control">
+            <div class="form-text">
+              Ensure it matches exactly as your name appears in the roster.
+            </div>
+            
           </div>
         </div>
       </div>

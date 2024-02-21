@@ -3,7 +3,7 @@ from tkinter.filedialog import askopenfilename
 import locale
 locale.setlocale(locale.LC_ALL, '')
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Opens a file selector. Then, returns the path to that file to the original main process using a Queue.
 #Unfortunately neccessary to create an entire subprocess just to use tkinter (*must* be run in the main process.)
@@ -33,21 +33,11 @@ def sortDateStrings(datesList):
 		returnList.append(x.strftime("%d-%m-%Y"))
 	return returnList
 
-"""
-	REDUNDANT - don't need to uniqufy these anymore as data is stored under IDs now.
-	if fileNameShort in shlf:
-		#Attempt to unique-ify the name. This may be unsuccessful, thus the second loop check.
-		filesTrueName = fileNameShort[:-4] #trim the .pdf
-		fileNameShort = filesTrueName + "(1).pdf"
-		indx = 1
-		#Did that unique-ifying work?
-		while fileNameShort in shlf:
-			#No? Ok keep iterating.
-			indx += 1
-			fileNameShort = filesTrueName + "(" + str(indx) + ").pdf"
-"""
-
 # These values defined here as I may want to change them for readability
+
+DATE_RANGE_TOO_LONG = "The date range selected for '{filename}' is more than a fortnight ({startdate} to {enddate}). Please be aware overtime calculations will be incorrect."
+DATES_NOT_ALIGNED = "The dates included in '{filename}' ({sd1} to {ed1}) and '{filename2}' ({sd2} to {ed2}) do not align."
+
 SHIFT_MISSING = "Shift missing"
 SHIFT_MISSING_D = "There is a shift missing on {date}."
 
@@ -69,11 +59,40 @@ DAY_TOTAL_D = ""
 def findDiscrepancies(compareList):
 	debug = True
 	discrepancies = {}
+	globalDiscrepancies = []
 	datesLeft = compareList[0]["data"]
 	datesRight = compareList[1]["data"]
 
 	if len(compareList) != 2:
 		raise ValueError("compareList not in correct format. Length of list is too long: length "+str(len(compareList)))
+
+	#Check for global discrepancies (roster dates more than 14 days in range, or dates not matching)
+	storeList = []
+	for side in compareList:
+		letsCheck = []
+		for date in side["data"]:
+			letsCheck.append(datetime.strptime(date, "%d-%m-%Y"))
+		letsCheck.sort()
+
+		if not storeList == [] and not (storeList[0] == letsCheck[0] and storeList[-1] == letsCheck[-1]): #If the store list is defined (checking the second comparelist), and range of both lists isn't identical:
+			globalDiscrepancies.append(DATES_NOT_ALIGNED.format(filename=compareList[0]["name"],
+																filename2=compareList[1]["name"],
+																sd1=storeList[0].strftime("%d-%m-%Y"),
+																ed1=storeList[-1].strftime("%d-%m-%Y"),
+																sd2=letsCheck[0].strftime("%d-%m-%Y"),
+																ed2=letsCheck[-1].strftime("%d-%m-%Y")))
+		else:
+			storeList = letsCheck.copy()
+		if side["name"].endswith(".pdf"): 
+			continue #doesn't matter if payslips cover more than 14 days - user cannot control this, so why tell them?
+		if (letsCheck[-1] - letsCheck[0]) > timedelta(days=14):
+			globalDiscrepancies.append(DATE_RANGE_TOO_LONG.format(filename=side["name"], startdate=letsCheck[0].strftime("%d-%m-%Y"), enddate=letsCheck[-1].strftime("%d-%m-%Y")))
+
+		print(storeList)
+		print(letsCheck)
+
+			
+
 
 	#Create the master dates list (super set of both date lists)
 	masterDatesList = []
@@ -192,7 +211,8 @@ def findDiscrepancies(compareList):
 	if debug:
 		print("discrepancies")
 		print(json.dumps(discrepancies, indent=2))
-	return discrepancies
+		print(globalDiscrepancies)
+	return discrepancies, globalDiscrepancies
 
 
 

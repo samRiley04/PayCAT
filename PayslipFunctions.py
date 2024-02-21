@@ -27,6 +27,16 @@ descShortlist = [
 	"ANNUAL LEAVE"
 ]
 
+# Dynamically generated if the roster utilises shift-codes (where instead a straight "0800-1800" listed in the roster, they use a code "AM" which is then referenced in a table elsewhere to mean those hours.)
+SHIFT_CODES = {}
+
+def isValidShiftCode(string):
+	# FOR NOW - only requirement is to start with a letter.
+	try:
+		return string.strip()[0].isalpha()
+	except (AttributeError):
+		return False
+
 # Returns the number of hours represented by a string of a given time range
 # e.g. '0800-1800' returns 10
 def parseHours(string):
@@ -47,11 +57,6 @@ def parseHours(string):
 			# Regex has ensured this is safe to do - if time has no leading zero, add it. (required for datetime parsing)
 			if len(t) == 3:
 				times[indx] = "0"+times[indx]
-		"""
-		# Don't calculate the total hours yet		
-		dif = datetime.strptime(times[1], "%H%M") - datetime.strptime(times[0], "%H%M")
-		return float((dif.seconds/60)/60)
-		"""
 		#May not be the most elegant way to have done this but so be it.
 		return times[0] + "-" + times[1]
 	else:
@@ -68,6 +73,18 @@ def parseDate(string):
 		return s.group()
 	else:
 		return None
+
+def findShiftCodes(sheet, debug):
+	for row in sheet.iter_rows():
+		for cell in row:
+			nextCell = sheet.cell(row=cell.row, column=cell.column+1)
+			if isValidShiftCode(cell.value) and parseHours(nextCell.value):
+				SHIFT_CODES.update({str(cell.value):parseHours(nextCell.value)})
+	if debug:
+		print("SHIFT CODES:")
+		print(json.dumps(SHIFT_CODES, indent=2))
+	return True
+
 
 def ingestTypeA(sheet, findName, debug):
 	outputDict = {}
@@ -125,7 +142,17 @@ def ingestTypeB(sheet, findName, debug):
 
 		if debug:
 			print("col: "+ tempDates[dateKey].column_letter + " | row: "+ str(closestRow))
-		hrs = parseHours(sheet[str(tempDates[dateKey].column_letter)+str(closestRow)].value)
+		cellVal = sheet[str(tempDates[dateKey].column_letter)+str(closestRow)].value
+		hrs = parseHours(cellVal)
+		if (hrs is None) and isValidShiftCode(cellVal): #parseHours couldn't find valid hours, check if it could be a shift code
+			if SHIFT_CODES == {}:
+				print("finding SHIFT CODES")
+				findShiftCodes(sheet, debug)
+			try:
+				hrs = SHIFT_CODES[cellVal]
+			except (KeyError):
+				pass
+				print("couldn't find that key: "+cellVal)
 		if not (hrs is None):
 			# Only update the dict if hours worked is a value
 			outputDict.update({dateKey:hrs})
@@ -163,7 +190,6 @@ def ingestTypeC(sheet, findName, debug):
 					elif debug:
 						print("DISCARDING potential date: " + dateAttempt)
 	if len(tempDates) == 0:
-		# Did not find a name.
 		raise ex.NoRecognisedDates()
 	if debug:
 		print("tempDates: " + str(tempDates))
@@ -172,8 +198,19 @@ def ingestTypeC(sheet, findName, debug):
 	# Iterate through each name, then collect all the date-rows below it
 	for col in tempNameCols:
 		for row in tempDates:
-			hrs = parseHours(sheet[str(col)+str(row)].value)
-			if not (hrs is None): 
+			cellVal = sheet[str(col)+str(row)].value
+			hrs = parseHours(cellVal)
+			if (hrs is None) and isValidShiftCode(cellVal): #parseHours couldn't find valid hours, check if it could be a shift code
+				if SHIFT_CODES == {}:
+					print("finding SHIFT CODES")
+					findShiftCodes(sheet, debug)
+				try:
+					hrs = SHIFT_CODES[cellVal]
+				except (KeyError):
+					pass
+					print("couldn't find that key: "+cellVal)
+			if not (hrs is None):
+				# Only update the dict if hours worked is a value
 				outputDict.update({
 					tempDates[row]:hrs
 				})
@@ -282,7 +319,8 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHid
 	except (ex.NameNotFound):
 		raise ValueError("Found no recognisable name in the roster \'"+fileName+"\'. Is it spelled correctly?")
 	except (ex.NoRecognisedDates):
-		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
+		# This is usually suggestive of the wrong roster format being provided!
+		raise ValueError("Found no recognisable dates in the roster '{fileName}'. Did you select the correct roster format?".format(fileName=fileName.split("/")[-1]))
 	#Now all the roster is ingested, trim the dict using the start/end dates.
 	if debug:
 		print("output dict:")
@@ -295,9 +333,9 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHid
 			outputDict.pop(entry)
 	if debug:
 		print("output dict:")
-		print(outputDict)
+		print(json.dumps(outputDict,indent=4))
 	if outputDict == {}:
-		raise ValueError("Found no recognisable dates in the roster \'"+fileName+"\'.")
+		raise ValueError("Found no recognisable dates in the roster '{fileName}' for the given date range {sD} to {eD}.".format(fileName=fileName.split("/")[-1], sD=startDate.date(), eD=endDate.date()))
 	return outputDict
 
 
