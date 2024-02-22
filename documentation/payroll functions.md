@@ -8,6 +8,9 @@ Covers the following functions within `payroll.py`
 
 - [analyseRoster()](#analyseroster)
 
+
+- [Public Holidays - Actual and Substituted](#public-holidays---actual-and-substituted)
+
 ## analyseRoster()
 
 **Usage**
@@ -90,4 +93,42 @@ For reference of public holidays in WA I used the document above, as well as [De
 See payroll-algorithm.md
 
 **Helper functions**
+
+
+## Public Holidays - Actual and Substituted
+
+Directly referencing the AMA industrial agreement:
+
+> When a public holiday falls on a Saturday or Sunday the holiday will be observed on the following Monday, except Easter Sunday which will be observed on the actual day. When Boxing Day falls on a Sunday or Monday, the holiday will be observed on the following Tuesday. When Christmas Day falls on a Saturday or Sunday, both the actual and substituted days will be regarded as public holidays.
+
+Thus this leaves us with the following possible combinations, as demonstrated by christmas in the following years.
+
+
+|  2020   | FRI | SAT | SUN |   MON    | TUE |
+|------|-----|-----|-----|----------|-----|
+| **?DAY** | Christmas | Boxing |     | Boxing(sub) |     |
+| **?PH**  | Y   |    |     | Y        |     |
+
+
+|  2021   | FRI |    SAT    |  SUN   |      MON       |     TUE     |
+|------|-----|-----------|--------|----------------|-------------|
+| **?DAY** |     | Christmas | Boxing | Christmas(sub) | Boxing(sub) |
+| **?PH**  |     | Y         |        | Y              | Y           |
+
+
+|    2022     | FRI | SAT |    SUN    |            MON            |     TUE     |
+|----------|-----|-----|-----------|---------------------------|-------------|
+| **?DAY** |     |     | Christmas | Boxing and Christmas(sub) | Boxing(sub) |
+| **?PH**  |     |     | Y         | Y                         | Y           |
+
+
+|    2023     | FRI | SAT | SUN |    MON    |  TUE   |
+|----------|-----|-----|-----|-----------|--------|
+| **?Day** |     |     |     | Christmas | Boxing |
+| **?PH**  |     |     |     | Y         | Y      |
+
+
+And so on...
+
+
 

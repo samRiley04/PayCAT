@@ -28,9 +28,9 @@ This is essentially replicating the logic that exists in HSS/Payroll's backend, 
 **Limitations**
 
 This function currently does not have the capacity to:
-- Ingest on call hours.
+- Ingest on call hours (yet).
 - Account for anyone <1FTE.
-- Account for unrostered overtime.
+- Account for unrostered overtime. This should be entered into the roster manually as if it were your rostered hours. (i.e. extending your shift to include your overtime hours worked)
 
 A quick refresher:
 
@@ -99,7 +99,7 @@ The differentiation between pens and non-pens descriptors is intentional. These 
 
 **To aid in calculating penalties:**
 - `PENALTY_RATES` (dict) - keys are used programatically. Entries should be in the format "Day of the week":(object), where the object contains entries in the format "cutoff":rate(float). Cutoff means "after this hour in a day, apply this penalty rate".
-- `PENALTY_RATES_PH_GENERIC` (dict) - keys are used programatically. As above, except instead of a cutoff value keys are an offset value. Offset means "this many days after a public holiday, use this penalty rates object."
+- `PENALTY_RATES_PH_GENERIC` (dict) - keys are used programatically. As above, except instead of a cutoff value keys are an offset value. Offset means "this many days after a public holiday, use this penalty rates object." REQUIRES: an entry with key="0".
 - `PENALTY_RATES_PH` (dict) keys are used programatically. As above. This dict is filled dynamically with reference to `PENALTY_RATES_PH_GENERIC`.
 - `PUBLIC_HOLIDAYS` (dict) keys are used programatically. As above. This dict is filled dynamically by `generatePublicHolidays()` in the format (date object):"description".
 
@@ -143,6 +143,7 @@ In code comments, marked as Section One
 - Some parts of this code section are not used, but I am too scared to remove them.
 - in `for date in daysWorking:`, public holiday dates are removed from the (copied) list of all public holidays IF you are already working on that public holiday. This is because that same list is iterated through straight afterwards, and used to generate public holiday _observed_ shifts (which by definition, occur on dates you are NOT working). Does that make sense?
 - in `for date in daysWorking:`, note that a timedelta object is constructed to insert the penalty rates for the day after a public holiday. This timedelta is created using the _KEYS_ in `PENALTY_RATES_PH_GENERIC`. A reminder to ensure they are integers. (This also occurs in `for PH in P_H_COPY:`)
+    - When creating the entry for the day _after_ a public holiday, `blendRatesDicts()` is used to ensure that after 8am when the public holiday ends, the correct penalty rates are paid.
 - `tempDict` is sorted by date in these steps as public holiday observed shifts would have been added to the end of the dict. (more a formatting issue than anything else.)
 
 ## analyseRoster - Checkpoints

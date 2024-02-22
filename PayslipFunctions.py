@@ -29,13 +29,17 @@ descShortlist = [
 
 # Dynamically generated if the roster utilises shift-codes (where instead a straight "0800-1800" listed in the roster, they use a code "AM" which is then referenced in a table elsewhere to mean those hours.)
 SHIFT_CODES = {}
+ATTEMPTS = []
+
 
 def isValidShiftCode(string):
 	# FOR NOW - only requirement is to start with a letter.
-	try:
-		return string.strip()[0].isalpha()
-	except (AttributeError):
-		return False
+	if isinstance(string, str):
+		try:
+			return (re.search(r'^\w+$', string)) #Match only a single run of letters/numbers, no spaces, dashes etc.
+		except (AttributeError, IndexError):
+			pass
+	return False
 
 # Returns the number of hours represented by a string of a given time range
 # e.g. '0800-1800' returns 10
@@ -75,6 +79,9 @@ def parseDate(string):
 		return None
 
 def findShiftCodes(sheet, debug):
+	if not ATTEMPTS == []:
+		return False
+	ATTEMPTS.append("one")	
 	for row in sheet.iter_rows():
 		for cell in row:
 			nextCell = sheet.cell(row=cell.row, column=cell.column+1)
@@ -88,6 +95,7 @@ def findShiftCodes(sheet, debug):
 
 def ingestTypeA(sheet, findName, debug):
 	outputDict = {}
+	raise ValueError()
 	return outputDict
 
 def ingestTypeB(sheet, findName, debug):
@@ -199,16 +207,17 @@ def ingestTypeC(sheet, findName, debug):
 	for col in tempNameCols:
 		for row in tempDates:
 			cellVal = sheet[str(col)+str(row)].value
+			if cellVal is None:
+				continue
 			hrs = parseHours(cellVal)
 			if (hrs is None) and isValidShiftCode(cellVal): #parseHours couldn't find valid hours, check if it could be a shift code
-				if SHIFT_CODES == {}:
-					print("finding SHIFT CODES")
-					findShiftCodes(sheet, debug)
+				findShiftCodes(sheet, debug) #will auto-cancel if it's already been done.
 				try:
 					hrs = SHIFT_CODES[cellVal]
 				except (KeyError):
 					pass
-					print("couldn't find that key: "+cellVal)
+					if debug:
+						print("couldn't find that key: "+cellVal)
 			if not (hrs is None):
 				# Only update the dict if hours worked is a value
 				outputDict.update({
@@ -301,6 +310,7 @@ def dateValidTypeC(cell, sheet):
 # RETURN ERRORS
 # ValueError - "employee name not found", "recognisable dates not found"
 def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHidden=True, debug=False):
+	# debug=True
 	outputDict = {}
 	wb = load_workbook(fileName, data_only=True)
 	sheet = wb.active

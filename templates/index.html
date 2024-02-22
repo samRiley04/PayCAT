@@ -88,7 +88,7 @@
   <div hidden id="template-storage">
     
     <!-- HEADER - payslip -->
-    <div class="p-3 rounded sam-payslip-theme border border-2" id="payslip-header">
+    <div class="p-3 rounded sam-payslip-theme border border-2 border-secondary-subtle" id="payslip-header">
       <div class="row">
         <div class="col px-2">
           <p class="h2 fw-bold" id="header-PPE">PPE DD-MM-YYYY</p>
@@ -104,7 +104,7 @@
     </div>
 
     <!-- HEADER - roster -->
-    <div class="p-3 rounded sam-roster-theme border border-2" id="roster-header">
+    <div class="p-3 rounded sam-roster-theme border border-2 border-secondary-subtle" id="roster-header">
       <div class="row">
         <div class="col px-2">
           <p class="h2 fw-bold" id="header-PPE">PPE DD-MM-YYYY</p>
@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    <!-- OLD #compareMode - double card columns. DEFUNCT -->
+    <!-- OLD #compareMode - double card columns. Still used! Don't delete -->
     <div class="row py-2 mx-0">
       <div class="col" id="compareMode-body">
         <!-- HEADER ROW -->
@@ -247,6 +247,11 @@
                 <div class="h3 text-grey text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">DISCREPANCIES</div>
               </div>
             </div>
+            <div hidden class="row mb-3" id='full-comparison-header'>
+              <div class="col text-center">
+                <div class="h3 text-grey text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">FULL COMPARISON</div>
+              </div>
+            </div>
             <div hidden class="row" id='global-alert-template'> 
               <div class="col">
                 <div class="alert alert-warning" role="alert">
@@ -271,8 +276,8 @@
               <div class="row">
                 <div class="col" id="notice-body-left">
 
-                  <div hidden class="card my-1" id='item-template-ghost' >
-                    <div class="card-header bg-body-secondary rounded-bottom" role="button" data-bs-toggle="collapse" href="#collapseIDk">
+                  <div hidden class="card my-1 bg-body-secondary border-0" id='item-template-ghost' >
+                    <div class="card-header rounded-bottom-2 border border-1 card-border-colour-hack bg-body-secondary" role="button" data-bs-toggle="collapse" href="#collapseIDk">
                       <div class="row">
                         <div class="col">
                           <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span>
@@ -283,9 +288,9 @@
                       </div>
                     </div>
                   </div>
-
-                  <div hidden class="card my-1" id='item-template'>
-                    <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseIDk">
+                  <!-- This is the ONLY card template! All changes affect all cards. -->
+                  <div hidden class="card my-1 bg-body-secondary border-0" id='item-template'>
+                    <div class="card-header rounded-bottom-2 border border-1 card-border-colour-hack" role="button" data-bs-toggle="collapse" href="#collapseIDk">
                       <div class="row">
                         <div class="col">
                           <span id='item-date' class="card-title fw-medium py-1 fs-4">DD-MM-YYYY</span><br><span class="fw-medium" id='item-date-endrange'></span>
@@ -313,7 +318,7 @@
                       </div>
                     </div>
                   </div>  
-
+                  <!-- END CARD TEMPLATE -->
                 </div>
                 <div class="col" id="notice-body-right">                
                 </div>
@@ -322,6 +327,12 @@
                 <div class="col" id="notice-footer">
                   <!-- Not used currently-->
                 </div>
+              </div>
+            </div>
+            <div hidden class="row" id="fc-cardholder-template">
+              <div class="col" id='card-container-left'>
+              </div>
+              <div class="col" id='card-container-right'>
               </div>
             </div>
             

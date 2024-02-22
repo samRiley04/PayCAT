@@ -13,10 +13,14 @@ DEC_EIGHTPLACES = Decimal(10) ** -8
 DEC_FOURPLACES = Decimal(10) ** -4
 DEC_TWOPLACES = Decimal(10) ** -2
 
-def multi(a, b, sf=DEC_EIGHTPLACES):
-	pass
+import re
 
-	
+def multi(a, b, sf=DEC_EIGHTPLACES):
+	return (a*b).quantize(sf, rounding=ROUND_HALF_DOWN)
+
+import custom_exceptions as ex
+
+
 """
 rosterDict = {
 	"2023-10-31": "0700-1900",
@@ -39,7 +43,7 @@ DESCRIPTORS_SHIFTS_ALL.update({
 	"1":"BASE HOURS",
 	"OT1.5":"OVERTIME @ 1.5",
 	"OT2":"OVERTIME @ 2.0",
-	"PH01":"PUBLIC HOLIDAY OBSERVED",
+	"PHO1":"PUBLIC HOLIDAY OBSERVED",
 	"PH1":"BASE HOURS"
 })
 
@@ -59,12 +63,36 @@ PENALTY_RATES = {
 	"Sat": {"0000":1.50},
 	"Sun": {"0000":1.75}
 }
+
+def CHECK_PENRATES():
+	required = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+	for x in required:
+		if not x in PENALTY_RATES:
+			raise ex.Insurmountable("The penalty rates dictionary (PENALTY_RATES) does not contain an entry for every day of the week. This is required for normal functioning.")
+		for key, value in PENALTY_RATES[x].items():
+			if not re.search(r'^\d{4}$', key):
+				raise ex.Insurmountable("The penalty rates dictionary (PENALTY_RATES) entry for '{dow}' contains an invalid hours checkpoint entry - '{key}'.".format(dow=x, key=key))
+			if not (isinstance(value, float) or isinstance(value, int)):
+				raise ex.Insurmountable("The penalty rates dictionary (PENALTY_RATES) entry for '{dow}' contains a value entry that is not float or integer - '{val}'.".format(dow=x, val=value))
+
+CHECK_PENRATES()
+
 # keys may ONLY be integers, as they are used as offset!!
 # (PH are paid at 150% pens + base from midnight to 8am the following day)
 PENALTY_RATES_PH_GENERIC = {
 	"0": {"0000":2.5},
 	"1": {"0000":2.5, "0800":1}
 }
+
+def CHECK_PENRATES_PH_GENERIC():
+	if not "0" in PENALTY_RATES_PH_GENERIC:
+		raise ex.Insurmountable("The generic public holiday rates dictionary (PENALTY_RATES_PH_GENERIC) does NOT contain a key equal to '0'. This is one of the only requirements. See documentation 'payroll-functions.md'")
+	for x in PENALTY_RATES_PH_GENERIC:
+		if not re.search(r'^\d$', x): #If not a single digit
+			raise ex.Insurmountable("The generic public holiday rates dictionary (PENALTY_RATES_PH_GENERIC) contains a key that is not an integer.")
+
+CHECK_PENRATES_PH_GENERIC()
+
 PENALTY_RATES_PH = {} #Created dynamically later.
 PUBLIC_HOLIDAYS = {} #Created later by generatePublicHolidays()
 
@@ -75,17 +103,7 @@ HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
 #ON CALL (in $ not a multipler)
 JMO_ON_CALL_HOURLY = 12.22
 
-
-# Don't even ask...
-KINGS_BIRTHDAY = {"2024": datetime.strptime("23-09-2024", "%d-%m-%Y").date(), 
-	"2025": datetime.strptime("29-09-2025", "%d-%m-%Y").date(), 
-	"2026": datetime.strptime("28-09-2026", "%d-%m-%Y").date(),
-	"2023": datetime.strptime("25-09-2023", "%d-%m-%Y").date(),
-	"2022": datetime.strptime("26-09-2022", "%d-%m-%Y").date(),
-	"2021": datetime.strptime("27-09-2021", "%d-%m-%Y").date(),
-	"2020": datetime.strptime("28-09-2020", "%d-%m-%Y").date()
-}
-
+# This includes TRUE public holidays, as well as SUBSTITUTE public holidays (I.e. where a public holiday occurs on a weekend and is observed on the next Monday)
 def generatePublicHolidays(yearsList):
 	PUBLIC_HOLIDAYS_TEMP = {}
 	au_holidays = holidays.AU(subdiv='WA',years=yearsList)
@@ -94,15 +112,38 @@ def generatePublicHolidays(yearsList):
 	#For some reason Easter Sunday not included in this holidays library??
 	for event in au_holidays.get_named("Good Friday"):
 		PUBLIC_HOLIDAYS_TEMP.update({(event+timedelta(days=2)):"Easter Sunday"})
-	#For some reason the Kings Birthday is wrong in this library
+	#For some reason this library gets the Kings Birthday wrong for 2024
 	for birthday in au_holidays.get_named("King's Birthday"):
-		PUBLIC_HOLIDAYS_TEMP.pop(birthday)
-		PUBLIC_HOLIDAYS_TEMP.update({KINGS_BIRTHDAY[str(birthday.year)]:"King's Birthday"})
-	#Sort the holidays by date because idk why they aren't sorted...
+		if birthday.year == "2024":
+			PUBLIC_HOLIDAYS_TEMP.pop(birthday)
+			PUBLIC_HOLIDAYS_TEMP.update({datetime.strptime("23-09-2024", "%d-%m-%Y"):"King's Birthday"})
+			break
+	# Holidays lib does get observed holiday days correct, but unfortunately the AMA agreement doesn't consider all of them as paid public holidays
+	# So some must be removed. Note - Christmas is not removed, see documentation 'payroll-functions.md'
+	dontRemoveFromWknds = ["Christmas Day", "Easter Sunday"]
+	for date, name in PUBLIC_HOLIDAYS_TEMP.copy().items():
+		if date.strftime("%a") in ["Sat", "Sun"] and name not in dontRemoveFromWknds: #Double negative - equates to if name in removefromweekends
+			PUBLIC_HOLIDAYS_TEMP.pop(date)
+		# This relies on the (observed) public holiday versions already being in the library.
+	# Sort them.
 	theList = list(PUBLIC_HOLIDAYS_TEMP.keys())
 	for x in sorted(theList):
 		PUBLIC_HOLIDAYS.update({x:PUBLIC_HOLIDAYS_TEMP[x]})
 	return PUBLIC_HOLIDAYS
+
+# DIRECTLY modifies PENALTY_RATES_PH.
+def makePenratePHEntry(date, debug=False):
+	for offset in PENALTY_RATES_PH_GENERIC:
+		if offset == "0":
+				# Day 0 - Rate NOT blended.
+				PENALTY_RATES_PH.update({date+timedelta(days=int(offset)):PENALTY_RATES_PH_GENERIC[offset]})
+		else:
+			# Day 1 (AKA day after PH) - Rate MUST be blended with the normal rates seen on that day of the week (so as to include the after 6pm pen, or so that the rest of the day is at 1.75 or 1.5 for weekends.)
+			blendedRates = blendRatesDicts(PENALTY_RATES_PH_GENERIC[offset], PENALTY_RATES[date.strftime("%a")])
+			if debug:
+				print("Adding blended rate dict!")
+				print(blendedRates)
+			PENALTY_RATES_PH.update({date+timedelta(days=int(offset)):blendedRates})
 
 def createDateRangeDays(start, end):
 	returnList = [start]
@@ -124,20 +165,42 @@ def createDateRangeYears(start,end):
 		x += 1
 	return returnList
 
-# Shamelessly stolen from a https://kodify.net/python/math/round-decimals/
-def round_decimals_down(number:float, decimals:int=2):
-    """
-    Returns a value rounded down to a specific number of decimal places.
-    """
-    if not isinstance(decimals, int):
-        raise TypeError("decimal places must be an integer")
-    elif decimals < 0:
-        raise ValueError("decimal places has to be 0 or more")
-    elif decimals == 0:
-        return math.floor(number)
-
-    factor = 10 ** decimals
-    return math.floor(number * factor) / factor
+#Returns a single rates dictionary, combining the penalty rate values, preferring the highest value.
+# Used to apply a day-after-public holiday rate to a weekday/weekend day (for the remaining hours after 8am). 
+# E.g. {"0000":1.25} and {"0000":1.5} returns {"0000":1.5}
+# E.g. {"0000":2.5, "0800":1} and {"0000":1.25, "0800":1, "1800":1.20} returns {"0000":2.5, "0800":1, "1800":1.20} ---DAY AFTER PUBLIC HOLIDAY IS WEEKDAY E.G
+# E.g. {"0000":2.5, "0800":1} and {"0000":1.75} returns {"0000":2.5, "0800":1.75} ---DAY-AFTER-PH IS SUNDAY E.G
+def blendRatesDicts(first, second, debug=False):
+	# Make a master set of checkpoints
+	t = list(first.keys())
+	t.extend(list(second.keys()))
+	blendCheckpoints = list(set(t)) #uniqueify
+	blendCheckpoints.sort()
+	listOfThem = [first, second]
+	# Make sure they have matching checkpoint times but preserve their rates-data (ensures rates can be compared truly accurately in the next step)
+	for index, aRatesDict in enumerate(listOfThem.copy()):
+		currentRate = None
+		for checkpoint in blendCheckpoints:
+			if not (checkpoint in aRatesDict):
+				if currentRate is None:
+					continue # See documentation - if the rate is not defined prior to a missing checkpoint, it doesn't need to be added. Step two will favour the other dictionary anyway (which is the desired functionality)
+				listOfThem[index].update({checkpoint:currentRate})
+			currentRate = aRatesDict[checkpoint]
+	# Now create toReturn using both dicts, prioritising the higher rates values
+	toReturn = {}
+	for checkpoint in blendCheckpoints:
+		for thisRatesDict in listOfThem:
+			if checkpoint in thisRatesDict:
+				# Eligible to potentially be added to the return dict..
+				if (checkpoint in toReturn) and (toReturn[checkpoint] < thisRatesDict[checkpoint]):
+					toReturn.update({checkpoint:thisRatesDict[checkpoint]}) #If this checkpoint is already in the return dict, ONLY update it if the rates value is BETTER
+				elif not checkpoint in toReturn:
+					toReturn.update({checkpoint:thisRatesDict[checkpoint]}) #This is just for readability - could be one big OR statement.
+	if debug:
+		print("--> BLENDED Rates Dicts created: ")
+		print(toReturn)
+		print("--> USING: " + str(first) + " and "+ str(second))
+	return toReturn
 
 
 #hoursWorkedAlready (float) - the employee has worked this many hours already this fortnight.
@@ -145,7 +208,6 @@ def round_decimals_down(number:float, decimals:int=2):
 #returnValues (list) containing {"rate":rate, "hours":hours} objects
 def getCorrectOTRates(hoursWorkedAlready, hoursAmount, debug):
 	returnValues = []
-
 	# Create a more useable version of the overtime rates dict (hour-checkpoints now in float form)
 	toIterate = list(OVERTIME_RATES.keys())
 	for i, x in enumerate(toIterate.copy()):
@@ -180,7 +242,10 @@ def getCorrectPenRates(START_SHIFT_TIME, anchorBack):
 	testRate = None
 	if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
 		testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
-		desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+		try:
+			desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+		except (KeyError):
+			desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 	else:
 		testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 		desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
@@ -217,6 +282,7 @@ def expandForBaseHours(pensList):
 # VERY IMPORTANT NOTE: this function ASSUMES the roster given contains shifts worked over a fortnight!.
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
 def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
+	# debug=True
 	if rosterDict == {}:
 		raise ValueError("Found no recognisable dates in the roster for this given range.")
 	WAGE_BASE_RATE = wageBaseRate
@@ -266,20 +332,32 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 		baseHours = HOURS_BEFORE_OVERTIME
 	if debug:
 		print("BASE " + str(baseHours) + ", OT " + str(overtimeHours))
+		print("---- tempDict !!! ----")
 		print(tempDict)
 
 	P_H_COPY = PUBLIC_HOLIDAYS.copy() #this will be modified to prevent double ups on PH that are already being worked.
 	# Start by checking if you're already working PH
 
-	daysWorking = createDateRangeDays(rangeLower, rangeUpper)
+	daysWorking = list(tempDict.keys())
+	if debug:
+		print("DAYS WORKING: ")
+		print(daysWorking)
+
+	# ASSUMPTION - PENALTY_RATES_PH_GENERIC contains AT MOST two entries - 0 and 1
 	for date in daysWorking:
+		date = date.date()
+		# POP DATES and MAKE A PEN_RATE_PH ENTRY
 		if date in PUBLIC_HOLIDAYS:
 			if debug:
 				print("------PH -------Already working")
 			P_H_COPY.pop(date) #So it won't be counted when scanning through this dict next.
 			# But still need to update the PH penalty rates dict as we know you'll be working. (see below where we do this again.)
-			for offset in PENALTY_RATES_PH_GENERIC:
-				PENALTY_RATES_PH.update({date+timedelta(days=int(offset)):PENALTY_RATES_PH_GENERIC[offset]})
+			makePenratePHEntry(date)
+		# MAKE A PEN_RATE_PH ENTRY only.
+		elif (date - timedelta(days=1)) in PUBLIC_HOLIDAYS: #If working the day _AFTER_ a PH, need to have that PEN_RATE_PH entry in the dict, but don't want it to be removed from P_H_COPY otherwise it won't be recognised as an observed PH in the next step
+			if debug:
+				print("------PH -------Working Day after, making PEN_RATE entry only")
+			makePenratePHEntry(date-timedelta(days=1))
 	if debug:
 		print("PUBLIC HOLIDAYS MODIFIED:")
 		print(P_H_COPY)
@@ -297,8 +375,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 			# Because we know we will be calculating rates on this day, generate an entry for PENALTY_RATES_PH
 			# Remembering that the keys in this dict are the offsets from the PH day, with units being days.
 			# This will overwrite any second-days that may have already been placed (e.g. in the case of christmas day and boxing day) but this IS CORRECT.
-			for offset in PENALTY_RATES_PH_GENERIC:
-				PENALTY_RATES_PH.update({PH+timedelta(days=int(offset)):PENALTY_RATES_PH_GENERIC[offset]})
+			makePenratePHEntry(PH)
 
 	if debug:
 		print("PENALTY RATES PUBLIC HOLIDAY")
@@ -333,10 +410,11 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 		# Create CHECKPOINTS from the dictionary containing penalty rate cutoffs.
 		for day in daysToCheck:
 			# If the day is a public holiday, insert checkpoints from the PH reference dict instead of the default DoW reference dict.
-			if day in PUBLIC_HOLIDAYS:
+			if day in PENALTY_RATES_PH:
 				for hourMark in PENALTY_RATES_PH[day]: #uses a date as key instead of DoW like the other PENALTY RATES table.
 					toAdd = datetime.strptime(hourMark, "%H%M")
 					checkpoints.append(datetime.combine(day, toAdd.time()))
+					datetime.combine(day, toAdd.time())
 			else:
 				for hourMark in PENALTY_RATES[day.strftime("%a")]:
 					toAdd = datetime.strptime(hourMark, "%H%M")
@@ -383,9 +461,12 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 					hrs = float((END_SHIFT_TIME - anchorBack).seconds/3600)
 					# This will override the rate no matter what (if there are overtime hours)
 					if not (anchorBack == START_SHIFT_TIME): #If the back anchor is on the shift_start time, we use the rate from what is already set last time (see the else clause in the most outside if/elif/else statement)
-						if START_SHIFT_TIME.date() in PENALTY_RATES_PH: #This check of start_time is so you can access the until-8am-next-day part of PH rates.
+						if anchorBack.date() in PENALTY_RATES_PH: #This check of start_time is so you can access the until-8am-next-day part of PH rates.
 							rate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
-							desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+							try:
+								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+							except (KeyError):
+								desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 						else: #rate must be reset as back anchor is ending on a checkpoint.
 							rate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 							desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
@@ -399,9 +480,12 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 							# This 'if' is only placed once as PH shifts will always have START_TIME and END_TIME sequential, as theres' only one checkpoint at 0000. (assumption B)
 						testRate = None
 						try: #Try to see if the start time is also a valid penalty rate checkpoint.
-							if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
+							if anchorBack.date() in PENALTY_RATES_PH:
 								testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
-								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+								try:
+									desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+								except (KeyError):
+									desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 							else:
 								testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 								desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
@@ -423,18 +507,24 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 					# The correct pen is determined by backanchor (and if it's not a true checkpoint, whatever is behind back anchor.)
 					# If the back anchor is on start shift, the rate we want is already set through the enclosing if-else statement. Thus, look for not this case.
 					if not (anchorBack == START_SHIFT_TIME):	
-						if START_SHIFT_TIME.date() in PENALTY_RATES_PH: 
+						if anchorBack.date() in PENALTY_RATES_PH: 
 							rate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
-							desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)] #Hopefully have pre-arranged these checkpoints such that rates are either 1.5 or 2
+							try:
+								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+							except (KeyError):
+								desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 						else:
 							rate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 							desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 					else:
 						testRate = None
 						try: #Try to see if the start time is also a valid penalty rate checkpoint.
-							if START_SHIFT_TIME.date() in PENALTY_RATES_PH:
+							if anchorBack.date() in PENALTY_RATES_PH:
 								testRate = PENALTY_RATES_PH[anchorBack.date()][anchorBack.strftime("%H%M")]
-								desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(testRate)]
+								try:
+									desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+								except (KeyError):
+									desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 							else:
 								testRate = PENALTY_RATES[anchorBack.strftime("%a")][anchorBack.strftime("%H%M")]
 								desc = DESCRIPTORS_SHIFTS_ALL[str(testRate)]
@@ -451,7 +541,10 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 				# This is because once you find the START_, will need the pens value behind the start to calculate correctly.
 				if anchorFront.date() in PENALTY_RATES_PH:
 					rate = PENALTY_RATES_PH[anchorFront.date()][anchorFront.strftime("%H%M")]
-					desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+					try:
+						desc = DESCRIPTORS_SHIFTS_ALL["PH"+str(rate)]
+					except (KeyError):
+						desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 				else:
 					rate = PENALTY_RATES[anchorFront.strftime("%a")][anchorFront.strftime("%H%M")]
 					desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
@@ -529,7 +622,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 			# Make sure to record penalties correctly by separating base hours and penalty rate values
 			if entry["desc"] in DESCRIPTORS_SHIFTS_PENS.values():
 				#Just have to modify the rate before continuing.
-				rateProper = (Decimal(entry["rate"]-1)*Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES)
+				rateProper = multi(Decimal(entry["rate"]-1), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN) #weird but only way to get 5's to round down. Trust me.
 				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
 				dirtyAmountSum += thisAmount
 				pensListProper.append({
@@ -540,7 +633,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 				})
 			else:
 				#Add as per usual
-				rateProper = (Decimal(entry["rate"])*Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES)
+				rateProper = multi(Decimal(entry["rate"]), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN) #See same term above.
 				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
 				dirtyAmountSum += thisAmount
 				pensListProper.append({

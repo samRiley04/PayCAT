@@ -73,6 +73,20 @@ function zeroPadDate(dateString) { //ALSO sanitises date strings to use dashes o
   return dParts.join("-");
 }
 
+function filterUniqueDates(data) {
+  const lookup = new Set();
+  
+  return data.filter(date => {
+     const serialised = date.getTime();
+    if (lookup.has(serialised)) {
+      return false;
+    } else { 
+      lookup.add(serialised);
+      return true;
+    }
+  })
+}
+
 function prettyMoneyString(anyFloat) {
   let strVersion = "$"+anyFloat.toFixed(2).toString()
   if (strVersion[1] == "-") { // if negative, swap the dollar and minus signs around
@@ -573,7 +587,93 @@ function loadEntry(pdfID) {
             }
             $("#"+sideID).find("#item-total").text(prettyMoneyString(sumAmount))      
           }
-
+        }
+        $("#"+newID).find("#body-rowcol").append($("#full-comparison-header").clone().attr('id',newID+"-comparison-header").removeAttr('hidden'))
+        //---------------------//---------------------//---------------------//---------------------
+        //Clear the main container and add the new content type.
+        $("#"+newID).find("#body-rowcol").append($("#template-storage").find("#compareMode-body").clone().attr("id",newID+"-body"))
+        let bodyID = "#"+newID+"-body";
+        //Readability:
+        //Because I can't do it in a smarter way:
+        todo = [{...study[0], "side":"left"},{...study[1], "side":"right"}]
+        //Make a unique dates list
+        let allDates = []
+        for (side of todo) {
+          for (key of Object.keys(side["data"])) {
+            kbits = key.replaceAll(/[-/.]/g, "-").split("-")
+            allDates.push(new Date(kbits[2], kbits[1]-1, kbits[0]))
+          }
+        }
+        let uniqueDates = filterUniqueDates(allDates)
+        uniqueDates.sort(function(a,b){return a - b;});
+        //Now iterate through the data in this entry and generate a card for each date.
+        let uniqueDateStrings = []
+        for (date of uniqueDates) {
+          uniqueDateStrings.push(date.toLocaleDateString("en-GB", { // you can use undefined as first argument
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).replaceAll("/", "-"))
+        }
+        //This was such a dumb way to make this list.
+        for (date of uniqueDateStrings) {
+          let cardholderID = newID+"-"+date+"cardholder"
+          $('#'+newID).find("#body-rowcol").append($("#template-storage").find("#fc-cardholder-template").clone().attr("id",cardholderID).removeAttr("hidden"))
+          for (whichever of todo) { 
+            if (!Object.hasOwn(whichever["data"], date)) {
+              continue
+              //There's no reason to make a card if it's not included in one side's list.
+            }
+            let side = whichever["side"]
+            //Clone a new card in the container, rename it's ID as the date, and remove hidden.
+            let cardID = side+"-"+date+"-card"
+            let templateID = ""
+            $("#content-column").find("#"+cardholderID+" > #card-container-"+side).append($("#template-storage").find("#compareMode-body-new").find("#item-template").clone().attr('id', cardID).removeAttr('hidden')) //theres actually two item templates (viewMode one, and comparemode one. The other not removed for legacy's sake)
+            if (whichever["name"].endsWith(".pdf")) {
+              $("#"+cardID+" > .card-header").addClass("sam-payslip-theme-light")
+            } else if (whichever["name"].endsWith(".xlsx")) {
+              $("#"+cardID+" > .card-header").addClass("sam-roster-theme-light")
+            }
+            //Uniqify the collapse IDs (generic)
+            //INTENTIONALLY CREATE DUPLICATE IDS HERE ! - entries with the same date should open and close together, thus should name them identically!
+            $('#content-column').find('#'+cardID+" > .card-header").attr("href", "#"+date+"-collapse")
+            $('#content-column').find('#'+cardID+" > .collapse").attr("id", date+"-collapse")
+            //Fill all the values in the card 
+            //Date:
+            //TODO - 'from date' AND 'to date'.
+            $('#content-column').find('#'+cardID).find("#item-date").text(date)       
+            //Now work through each contributing item (base hours, OT @ 1.5), filling the text and summing the total amount.
+            let sumAmount = 0
+            //There is SO MUCH DUPLICATE CODE IN THIS FUNCTION FUCK
+            for (let i = 0; i < whichever["data"][date].length; i++) {
+              let entry = whichever["data"][date][i]
+              sumAmount += parseFloat(entry["amount"])
+              //'Item entries' are 'text/units+rate/amount' e.g. "BASE HOURS (12@43.223)      $123.45"
+              $("#"+cardID).find("#item-entry-container").append($('#'+cardID).find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
+              $("#"+cardID).find("#item-entry"+i).removeAttr('hidden')
+              //Only if they're defined, fill units/rate
+              if (typeof entry["units"] !== 'undefined' && /\d+/.test(entry["units"].replace(".",""))) { //this regex skips units/rates entries that aren't numbers
+                $("#"+cardID).find("#item-entry"+i).find("#item-units").text("("+entry["units"] + "h")
+                $("#"+cardID).find("#item-entry"+i).find("#item-units").clone()
+                $("#"+cardID).find("#item-entry"+i).find("#item-rate").text(parseFloat(entry["rate"])+")")
+                $("#"+cardID).find("#item-entry"+i).find("#item-entry-at").removeAttr('hidden')
+              }
+              //If units are negative, emphasise this.
+              if (entry["units"] < 0) {
+                $("#"+cardID).find("#item-entry"+i).find("#item-unitsrate").addClass("text-danger-emphasis")
+              }
+              if (entry["amount"] < 0)  {
+                $("#"+cardID).find("#item-entry"+i).find("#item-amount").addClass("text-danger")
+              }
+              $("#"+cardID).find("#item-entry"+i).find("#item-description").text(entry["description"])
+              $("#"+cardID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"])))
+            }
+            if (sumAmount < 0) {
+              $("#"+cardID).find("#item-total").removeClass("text-success")
+              $("#"+cardID).find("#item-total").addClass("text-danger")
+            }
+            $("#"+cardID).find("#item-total").text(prettyMoneyString(sumAmount)) 
+            }
         }
       } else {
         // ?? what else is there.
