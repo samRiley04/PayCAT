@@ -1,7 +1,7 @@
 import flask
 from flask import Flask, redirect, url_for, render_template, flash, request, session, send_from_directory, current_app
 from flask_restful import Resource, Api, reqparse, inputs
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, freeze_support
 from datetime import datetime, timedelta
 
 import logging
@@ -20,6 +20,7 @@ import utilities as ut
 
 # Initialise
 #To ensure this works packaged.
+
 base_dir = '.'
 if hasattr(sys, '_MEIPASS'):
     base_dir = os.path.join(sys._MEIPASS)
@@ -29,7 +30,6 @@ if getattr(sys, 'frozen', False):
     app = Flask(__name__,
         static_folder=os.path.join(base_dir, 'static'),
         template_folder=os.path.join(base_dir, 'templates'))
-    print("template FOLDER DID!")
 else:
     app = Flask("PayCAT")
 
@@ -288,10 +288,15 @@ class filePath(Resource):
 		pickedPath = None
 		if __name__ == "__main__":
 			q = Queue()
-			p = Process(target=ut.filePicker,args=(q,))
+			p = Process(target=ut.filePicker, args=(q,))
 			p.start()
 			pickedPath = q.get()
 			p.join()
+		if pickedPath is None:
+			return {
+				"data": None,
+				"message":"Failed to select file"
+			}, 404
 		return {
 			"data":pickedPath,
 			"message":"Success"
@@ -352,7 +357,8 @@ api.add_resource(settings, "/api/settings")
 
 def start():
 	if __name__ == "__main__":
-		#webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+		freeze_support()
+		webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
 

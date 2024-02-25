@@ -468,7 +468,7 @@ function loadEntry(pdfID) {
           $("#"+newID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-left"))
         }
         if (study[1]["name"].endsWith(".pdf")) {
-          $("#"+newID).find(
+          $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-right"))
         } else if (study[1]["name"].endsWith(".xlsx")) {
           $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-right"))
         }
@@ -479,6 +479,7 @@ function loadEntry(pdfID) {
           $("#"+newID).find("#"+newID+"-gblalert-"+x.toString()).find("#alert-text").text(alertDesc)
           x+=1
         }
+
         // FILL THE BODY
         let discrepancies = data["data"]["discrepancies"]
         $("#"+newID).find("#body-rowcol").find("#discrepancies-header").text("DISCREPANCIES ("+Object.keys(discrepancies).length+")")

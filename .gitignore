@@ -21,3 +21,5 @@ uttest.py
 build/*
 dist/*
 app.spec
+PayCat.spec
+static/make icns/*
