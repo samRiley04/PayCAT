@@ -16,3 +16,8 @@ bigtest.py
 PayCAT-shelf-settings.db
 static/.DS_Store
 static/pictures/old/*
+typea.py
+uttest.py
+build/*
+dist/*
+app.spec

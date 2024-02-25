@@ -33,8 +33,8 @@ let compareModeFS1path = ""
 let compareModeFS2path = ""
 
 //Not used
-const BADGES_RED = ["Shift missing"]
-const BADGES_YELLOW = ["Hours worked different", "Hour types different", "Pay rate different"]
+const BADGES_RED = ["Negative hours"]
+const BADGES_YELLOW = []
 
 //Shamelessly plagarised from stack overflow and modified for non US dates
 function isValidDate(dateString) {
@@ -468,7 +468,7 @@ function loadEntry(pdfID) {
           $("#"+newID).find("#header-rowcol").find("#card-container-left").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-left"))
         }
         if (study[1]["name"].endsWith(".pdf")) {
-          $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#payslip-header").clone().attr("id",newID+"-header-right"))
+          $("#"+newID).find(
         } else if (study[1]["name"].endsWith(".xlsx")) {
           $("#"+newID).find("#header-rowcol").find("#card-container-right").append($('#template-storage').find("#roster-header").clone().attr("id",newID+"-header-right"))
         }
@@ -479,9 +479,9 @@ function loadEntry(pdfID) {
           $("#"+newID).find("#"+newID+"-gblalert-"+x.toString()).find("#alert-text").text(alertDesc)
           x+=1
         }
-
         // FILL THE BODY
         let discrepancies = data["data"]["discrepancies"]
+        $("#"+newID).find("#body-rowcol").find("#discrepancies-header").text("DISCREPANCIES ("+Object.keys(discrepancies).length+")")
         for (discrepancyDate in discrepancies) {
           // Make a empty template.
           let noticeID = discrepancyDate+"-notice"
@@ -493,13 +493,18 @@ function loadEntry(pdfID) {
             let bTitle = Object.keys(badge)[0] //only one key per object for a badge, so this is safe
             if (!uniqueList.includes(bTitle)) {
               if (BADGES_RED.includes(bTitle)) {
-                $("#"+noticeID).find("#notice-header-badges").append("<span class='badge bg-secondary'>"+bTitle+"</span> ") //end space intentional, to separate sequential badges
+                $("#"+noticeID).find("#notice-header-badges").append("<span class='badge bg-danger'>"+bTitle+"</span> ") //end space intentional, to separate sequential badges
               } else {
                 $("#"+noticeID).find("#notice-header-badges").append("<span class='badge bg-secondary'>"+bTitle+"</span> ")
               }
               uniqueList.push(bTitle)
             }
-            $("#"+noticeID).find("#notice-header-collapse").append($("#"+noticeID).find("#notice-header-collapse > #badge-desc").clone().attr('id',noticeID+"-"+bTitle).prepend(badge[bTitle]).removeAttr('hidden'))
+            if (BADGES_RED.includes(bTitle)) {
+              $("#"+noticeID).find("#notice-header-collapse").append($("#"+noticeID).find("#notice-header-collapse > #badge-desc").clone().attr('id',noticeID+"-"+bTitle.replace(" ","-")).prepend(badge[bTitle]).removeAttr('hidden').addClass("text-danger"))
+            } else {
+              $("#"+noticeID).find("#notice-header-collapse").append($("#"+noticeID).find("#notice-header-collapse > #badge-desc").clone().attr('id',noticeID+"-"+bTitle.replace(" ","-")).prepend(badge[bTitle]).removeAttr('hidden'))
+            }
+            //If it's a red badge, needs a red description
           }
 
           // Fill the card elements. Also highlight.

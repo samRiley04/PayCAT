@@ -35,6 +35,8 @@ ATTEMPTS = []
 def isValidShiftCode(string):
 	# FOR NOW - only requirement is to start with a letter.
 	if isinstance(string, str):
+		if string.upper() in ["OFF", "RDO"]:
+			return False #Should ignore these strings as they definitely aren't shift codes, but technically fit the description and are used sometimes.
 		try:
 			return (re.search(r'^\w+$', string)) #Match only a single run of letters/numbers, no spaces, dashes etc.
 		except (AttributeError, IndexError):
@@ -95,10 +97,81 @@ def findShiftCodes(sheet, debug):
 
 def ingestTypeA(sheet, findName, debug):
 	outputDict = {}
-	raise ValueError()
+	tempDates = {}
+	# find DATE CELLS
+	# AND check validity of DATES simultaneously
+	for row in sheet.iter_rows():
+		for cell in row:
+			# If the cell isn't empty
+			if not (cell.value is None):
+				dateAttempt = parseDate(str(cell.value))
+				#parseDate returns None if it doesn't match a date.
+				# Then check if it's a valid bonafide date.
+				if not (dateAttempt is None):
+					if dateValidTypeA(cell, sheet):
+						# Copy whole cell object so can access row/col easier.
+						tempDates.update({
+							str(dateAttempt):cell
+						})
+					elif debug:
+						print("DISCARDING potential date: " + dateAttempt)
+	if len(tempDates) == 0:
+		#Found no recognisable dates in the roster
+		raise ex.NoRecognisedDates()
+	if debug:
+		print("tempDates: "+ str(tempDates))
+	# FIND HOURS COL
+	tempHoursCounts = {} 
+	# Gather some candidates for potential shift-columns
+	for col in sheet.iter_cols():
+		for cell in col:
+			if parseHours(cell.value):
+				if cell.column_letter not in tempHoursCounts:
+					tempHoursCounts.update({cell.column_letter:1})
+				else:
+					tempHoursCounts.update({cell.column_letter:(tempHoursCounts[cell.column_letter]+1)})
+	if len(tempHoursCounts) == {}:
+		# Did not find a name.
+		raise ex.NoRecognisedShifts("Could not find any valid shift hours.")
+	# NOW pick only the column with most hours
+	hoursCol = list(tempHoursCounts.keys())[0] #Pick any, the first element will do.
+	for candidateCol, count in tempHoursCounts.items():
+		if count > tempHoursCounts[hoursCol]:
+			hoursCol = candidateCol
+	#hoursCol is now your winner
+	if debug:
+		for k, v in tempHoursCounts.items():
+			print("{k} - {v}".format(k=k, v=v))
+		print("column \'"+hoursCol+"\' wins!")
+	for dateKey, dateCell in tempDates.items():
+		# Find names.
+		for col in sheet.iter_cols(min_col=dateCell.column, max_col=dateCell.column, min_row=dateCell.row+1):
+			for cell in col:
+				if parseDate(str(cell.value)) in tempDates:
+					break
+					# We have reached the next layer of dates, so should stop looking for now (otherwise we will bleed into adjacent weeks.)
+				if (not cell.value is None) and (cell.value == findName or re.search(r'[(\[{]'+re.escape(findName)+r'[)\]}]\s*$', str(cell.value))):
+					# IF the cell contains your name but just after some other text, include that also.
+					hrs = parseHours(sheet[hoursCol+str(cell.row)].value)
+					if (hrs is None) and isValidShiftCode(cellVal): #parseHours couldn't find valid hours, check if it could be a shift code
+						if SHIFT_CODES == {}:
+							print("finding SHIFT CODES")
+							findShiftCodes(sheet, debug)
+						try:
+							hrs = SHIFT_CODES[cellVal]
+						except (KeyError):
+							pass
+							print("couldn't find that key: "+cellVal)
+					if not (hrs is None):
+						# Only update the dict if hours worked is a value
+						outputDict.update({dateKey:hrs})
+	if debug:
+		print("Pre-cull outputDict: ")
+		print(json.dumps(outputDict, indent=4))
 	return outputDict
 
-def ingestTypeB(sheet, findName, debug):
+
+def ingestTypeB(sheet, findName, debug=True):
 	outputDict = {}
 	tempDates = {}
 	# find DATE CELLS
@@ -147,7 +220,6 @@ def ingestTypeB(sheet, findName, debug):
 				closestRow = row
 			#if debug:
 				#print("attempted row: " + str(row)+". dif was "+str(rowDif1) + " and now closest row is " + str(closestRow))
-
 		if debug:
 			print("col: "+ tempDates[dateKey].column_letter + " | row: "+ str(closestRow))
 		cellVal = sheet[str(tempDates[dateKey].column_letter)+str(closestRow)].value
@@ -227,7 +299,21 @@ def ingestTypeC(sheet, findName, debug):
 
 # SENSITIVITY MAY NEED TO BE TITRATED TO EFFECT in future.
 def dateValidTypeA(cell, sheet):
-	return True
+	debug = False
+	if cell.column == 1:
+		compareLeft = "<INVALID_DATE>"
+	else:
+		compareLeft = str(sheet.cell(row=cell.row, column=cell.column-1).value)
+	compareRight = str(sheet.cell(row=cell.row, column=cell.column+1).value)
+	if debug:
+		print("R: ")
+		print(compareRight)
+		print("L: ")
+		print(compareLeft)
+	# If either of left or right are valid dates.
+	if (parseDate(compareLeft) or parseDate(compareRight)):
+		return True
+	return False
 
 def dateValidTypeB(cell, sheet):
 	debug = False
@@ -310,7 +396,7 @@ def dateValidTypeC(cell, sheet):
 # RETURN ERRORS
 # ValueError - "employee name not found", "recognisable dates not found"
 def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHidden=True, debug=False):
-	# debug=True
+	debug=True
 	outputDict = {}
 	wb = load_workbook(fileName, data_only=True)
 	sheet = wb.active
@@ -359,7 +445,10 @@ def ingestPDF(fileName):
 	psDict = {}
 	with open(fileName, 'rb') as pdf:
 		pdfReader = PyPDF2.PdfReader(pdf)
-		pageOfInterest = pdfReader.pages[1].extract_text().split('\n')
+		try:
+			pageOfInterest = pdfReader.pages[1].extract_text().split('\n')
+		except IndexError:
+			raise ValueError("This PDF doesn't seem to fit the format of a WA health payslip.")
 		LINELIMITER = 0
 		# PAGE TWO ----
 		for line in pageOfInterest:

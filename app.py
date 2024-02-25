@@ -20,11 +20,19 @@ import utilities as ut
 
 # Initialise
 #To ensure this works packaged.
+base_dir = '.'
+if hasattr(sys, '_MEIPASS'):
+    base_dir = os.path.join(sys._MEIPASS)
 if getattr(sys, 'frozen', False):
     template_folder = os.path.join(sys._MEIPASS, 'templates')
-    app = Flask("PayCAT", template_folder=template_folder)
+    #app = Flask("PayCAT", template_folder=template_folder)
+    app = Flask(__name__,
+        static_folder=os.path.join(base_dir, 'static'),
+        template_folder=os.path.join(base_dir, 'templates'))
+    print("template FOLDER DID!")
 else:
     app = Flask("PayCAT")
+
 
 logging.basicConfig(filename='server.log', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S%p')
 api = Api(app)
@@ -344,7 +352,8 @@ api.add_resource(settings, "/api/settings")
 
 def start():
 	if __name__ == "__main__":
+		#webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
-#webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+
 start()

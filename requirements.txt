@@ -1,0 +1,8 @@
+Flask==3.0.2
+Flask_RESTful==0.3.10
+holidays==0.41
+openpyxl==3.1.2
+PyPDF2==3.0.1
+python_dateutil==2.8.2
+PyYAML==6.0.1
+Requests==2.31.0

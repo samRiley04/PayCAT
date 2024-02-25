@@ -35,9 +35,11 @@ def sortDateStrings(datesList):
 
 # These values defined here as I may want to change them for readability
 
+# Global discrepancies
 DATE_RANGE_TOO_LONG = "The date range selected for '{filename}' is more than a fortnight ({startdate} to {enddate}). Please be aware overtime calculations will be incorrect."
 DATES_NOT_ALIGNED = "The dates included in '{filename}' ({sd1} to {ed1}) and '{filename2}' ({sd2} to {ed2}) do not align."
 
+# Discrepancies
 SHIFT_MISSING = "Shift missing"
 SHIFT_MISSING_D = "There is a shift missing on {date}."
 
@@ -48,7 +50,7 @@ HOURS_WORKED = "Hours worked different"
 HOURS_WORKED_D = "The hours worked is different for {hourtype} on this date."
 
 HOURS_NEGATIVE = "Negative hours"
-HOURS_NEGATIVE_D = "The hours for {hourtype} on this date have been entered as a negative number. You should check if this is correct."
+HOURS_NEGATIVE_D = "The hours for {hourtype} on this date have been entered as a negative number. This is very unusual."
 
 HOUR_TYPE = "Hour types different"
 HOUR_TYPE_D = "{hourtype} is not listed in both files for this date."
@@ -60,13 +62,13 @@ def findDiscrepancies(compareList):
 	debug = True
 	discrepancies = {}
 	globalDiscrepancies = []
+
+	if len(compareList) != 2:
+		raise ValueError("compareList not in correct format. Length of list is wrong: length "+str(len(compareList)))
 	datesLeft = compareList[0]["data"]
 	datesRight = compareList[1]["data"]
 
-	if len(compareList) != 2:
-		raise ValueError("compareList not in correct format. Length of list is too long: length "+str(len(compareList)))
-
-	#Check for global discrepancies (roster dates more than 14 days in range, or dates not matching)
+	#Check for GLOBAL DISCREPANCIES (roster dates more than 14 days in range, or dates not matching etc)
 	storeList = []
 	for side in compareList:
 		letsCheck = []
@@ -83,72 +85,96 @@ def findDiscrepancies(compareList):
 																ed2=letsCheck[-1].strftime("%d-%m-%Y")))
 		else:
 			storeList = letsCheck.copy()
+		
 		if side["name"].endswith(".pdf"): 
 			continue #doesn't matter if payslips cover more than 14 days - user cannot control this, so why tell them?
 		if (letsCheck[-1] - letsCheck[0]) > timedelta(days=14):
 			globalDiscrepancies.append(DATE_RANGE_TOO_LONG.format(filename=side["name"], startdate=letsCheck[0].strftime("%d-%m-%Y"), enddate=letsCheck[-1].strftime("%d-%m-%Y")))
+		if debug:
+			print(storeList)
+			print(letsCheck)
 
-		print(storeList)
-		print(letsCheck)
-
-			
-
-
+	#Check for DISCREPANCIES
 	#Create the master dates list (super set of both date lists)
 	masterDatesList = []
-	for date in list(datesLeft.keys()):
-		masterDatesList.append(date)
-	for date in list(datesRight.keys()):
-		masterDatesList.append(date)
+	if not (datesLeft is None):
+		for date in list(datesLeft.keys()):
+			masterDatesList.append(date)
+	if not (datesRight is None):
+		for date in list(datesRight.keys()):
+			masterDatesList.append(date)
 	#uniquify all keys and then sort them.
 	masterDatesList = sortDateStrings(list(dict.fromkeys(masterDatesList)))
 	if debug:
 		print(json.dumps(masterDatesList, indent=2))
 
 	for givenDate in masterDatesList:
-		# Look for SHIFT MISSING?
-		if not (givenDate in datesLeft and givenDate in datesRight):
-			badges = []
-			highlights = []
-			badges.append({
-				SHIFT_MISSING : SHIFT_MISSING_D.format(date=givenDate)
-			})
-			badgesAndHighlights = {
-				"badges": badges,
-				"highlights": highlights
-			}
-			discrepancies.update({
-				givenDate: badgesAndHighlights
-			})
-			# Before we continue, quick check for any cardinal sins
-			continue
-			# Because if the shift is missing, doesn't matter if there are other errors (there will be)
-
-		# Now look for the other discrepancy types by iterating a master list of hours-types
+		# Look for discrepancy types by now iterating a master list of hours-types.
 		masterHoursTypesList = []
-		for entry in datesLeft[givenDate]:
-			masterHoursTypesList.append(entry["description"])
-		for entry in datesRight[givenDate]:
-			masterHoursTypesList.append(entry["description"])
+		try:
+			for entry in datesLeft[givenDate]:
+				masterHoursTypesList.append(entry["description"])
+		except KeyError:
+			pass #Some dates might be missing from a list, but have to persevere
+		try:
+			for entry in datesRight[givenDate]:
+				masterHoursTypesList.append(entry["description"])
+		except KeyError:
+			pass #Some dates might be missing from a list, but have to persevere
 		masterHoursTypesList = list(dict.fromkeys(masterHoursTypesList))
 		if debug:
 			print(givenDate+" masterHoursTypesList: " + str(masterHoursTypesList))
 
 		badges = []
 		highlights = []
+		shiftMissing = False
+		# Look for SHIFT MISSING?
+		if not (givenDate in datesLeft and givenDate in datesRight):
+			badges.append({
+				SHIFT_MISSING:SHIFT_MISSING_D.format(date=givenDate)
+			})
+			# No need to highlight anything for this discrepancy type.
+			shiftMissing = True #Tried other ways but sometimes you just need a brute force Bool on them boiz.
+		# Now iterate and check for discrepancies in each hours-type
 		for hourType in masterHoursTypesList:
-			# check HOUR TYPES DIFFERENT?
 			leftValues = None
 			rightValues = None
-			for x in datesLeft[givenDate]:
-				if hourType.strip() == x["description"].strip():
-					leftValues = x.copy()
-					break
-			for x in datesRight[givenDate]:
-				if hourType.strip() == x["description"].strip():
-					rightValues = x.copy()
-					break
-			if (leftValues is None or rightValues is None):
+			try:
+				for x in datesLeft[givenDate]:
+					if hourType.strip() == x["description"].strip():
+						leftValues = x.copy()
+						break
+			except KeyError:
+				pass #Some dates might be missing from a list, but have to persevere
+			try:
+				for x in datesRight[givenDate]:
+					if hourType.strip() == x["description"].strip():
+						rightValues = x.copy()
+						break
+			except KeyError:
+				pass #Some dates might be missing from a list, but have to persevere
+
+			# FIRST - should always look for negative hours as this is important irrespective of the presence of other discrepancies.
+			try:
+				if not leftValues is None and float(leftValues["units"]) < 0:
+					badges.insert(0, {
+						HOURS_NEGATIVE:HOURS_NEGATIVE_D.format(hourtype=hourType)
+					}) #Add it into first index so it is displayed first
+					highlights.append({
+						hourType:"units"
+					})
+				if not rightValues is None and float(rightValues["units"]) < 0:
+					badges.insert(0, {
+						HOURS_NEGATIVE:HOURS_NEGATIVE_D.format(hourtype=hourType)
+					})
+					highlights.append({
+						hourType:"units"
+					})
+			except KeyError:
+				pass
+
+			# Look for HOUR TYPE MISSING
+			if (not shiftMissing) and (leftValues is None or rightValues is None):
 				badges.append({
 					HOUR_TYPE:HOUR_TYPE_D.format(hourtype=hourType)
 				})
@@ -161,7 +187,9 @@ def findDiscrepancies(compareList):
 			# check the other descrepancy types.
 			# PAY RATE DIFFERENT
 			try:
-				if not (float(leftValues["rate"]) == float(rightValues["rate"])):
+				print("testing shift missing for " + str(givenDate))
+				print(SHIFT_MISSING in badges)
+				if (not shiftMissing) and not (float(leftValues["rate"]) == float(rightValues["rate"])): #If shift missing present, just skip over this.
 					badges.append({
 						PAY_RATE:PAY_RATE_D.format(hourtype=hourType)
 					})
@@ -171,25 +199,17 @@ def findDiscrepancies(compareList):
 			except KeyError:
 				pass
 			try:
-				if not (float(leftValues["units"]) == float(rightValues["units"])):
+				if (not shiftMissing) and not (float(leftValues["units"]) == float(rightValues["units"])):
 					badges.append({
 						HOURS_WORKED:HOURS_WORKED_D.format(hourtype=hourType)
 					})
 					highlights.append({
 						hourType:"units"
 					})
-				if float(leftValues["units"]) < 0:
-					badges.append({
-						HOURS_NEGATIVE:HOURS_NEGATIVE_D.format(hourtype=hourType)
-					})
-					highlights.append({
-						hourType:"units"
-					})
-
 			except KeyError:
 				pass
 			try:
-				if not (float(leftValues["amount"]) == float(rightValues["amount"])):
+				if (not shiftMissing) and not (float(leftValues["amount"]) == float(rightValues["amount"])):
 					#Don't add a badge for this, it's implied to the user if units/rate are different.
 					#Still highlight it though:
 					highlights.append({
@@ -197,7 +217,7 @@ def findDiscrepancies(compareList):
 					})
 			except KeyError:
 				pass
-		
+
 		# Add the badges and highlights for this date (if there are any).
 		if not (badges == []):
 			toAdd = {
