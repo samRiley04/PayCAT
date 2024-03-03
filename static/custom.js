@@ -359,8 +359,8 @@ function loadEntry(pdfID) {
             //'Item entries' are 'text/units+rate/amount' e.g. "BASE HOURS (12@43.223)      $123.45"
             $('#'+newID+"-body").find('#'+cardID).find("#item-entry-container").append($('#'+newID+"-body").find('#'+cardID).find("#item-entry").clone().removeAttr('hidden').attr('id', "item-entry"+i))
             //Only if they're defined, fill units/rate
-            if (typeof entry["units"] !== 'undefined') {
-              $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").text("("+entry["units"] + "h @ $" + entry["rate"]+")")
+            if ((typeof entry["units"] !== 'undefined' && /\d+/.test(entry["units"].replace(".","")))) {
+              $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").text("("+entry["units"] + "h @ " + entry["rate"]+")")
             } else {
               $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-unitsrate").text("")            
             }
@@ -375,12 +375,12 @@ function loadEntry(pdfID) {
             $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"]))) 
           }
           //finally record the sum of all amounts
-          $('#'+newID+"-body").find('#'+cardID).find("#item-total").text("$"+sumAmount.toFixed(2).toString())
+          $('#'+newID+"-body").find('#'+cardID).find("#item-total").text(prettyMoneyString(sumAmount))
         }
         //Record the heading entries
         $('#'+newID+"-header").find("#header-PPE").text("PPE " + study["payPeriodEnding"])
         $('#'+newID+"-header").find("#header-name-employer").text(study["employeeName"].toUpperCase() + "  /  " + study["employer"].toUpperCase())
-        $('#'+newID+"-header").find("#header-totalPTI").text("$"+study["totalPretaxIncome"])
+        $('#'+newID+"-header").find("#header-totalPTI").text(prettyMoneyString(parseFloat(study["totalPretaxIncome"])))
       // --- For COMPARE-type entries: ---
       } else if (Object.hasOwn(data["data"], "compare") && compareModeBasic) {
         //ESSENTIALLY THE SAME SHIT, but twice

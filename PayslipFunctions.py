@@ -68,13 +68,29 @@ def parseHours(string):
 	else:
 		return None
 
+ROSTERS_YEAR = None
+
+# Returns True if roster_year is set. If not set, finds it.
+def findYear(sheet):
+	if ROSTERS_YEAR is None:
+		for row in sheet.iter_rows():
+			for cell in row:
+				if not cell.value is None:
+					tryDate = parseDate(str(cell.value))
+					if tryDate:
+						ROSTERS_YEAR = int(datetime.strptime(tryDate, "%d-%m-%Y").strftime("%Y"))
+	print(ROSTERS_YEAR)
+	print("!@#!@#!123!@#!@#")
+	return True
+
+
 def parseDate(string):
 	s = None
 	try:
 		# YYYY-MM-DD or XX-XX-XX or DD-MM-YYYY
 		s = re.search(r'(\d{4}[-/\. ]\d{2}[-/\. ]\d{2})|(\d{2}[-/\. ]\d{2}[-/\. ](\d{4}|\d{2}))', string)
 	except TypeError:
-		print
+		pass
 	if not s is None:
 		return s.group()
 	else:
@@ -324,33 +340,33 @@ def dateValidTypeB(cell, sheet):
 	# Create a range and iterate (next #marginValue cells not including the date cell itself.)
 	for rowDown in sheet[cell.column_letter+str(cell.row+1):cell.column_letter+str(cell.row+marginValue)]:
 		for cellDown in rowDown:
-			counter += 1
-			if debug:
-				print("date: " + str(cell.value) + " | checking: " + str(cellDown.value))
-			if not (parseHours(cellDown.value) is None):
-				# Got at least one valid string before the marginValue cutoff, so it's Valid.
-				return True
-			elif not (cellDown.value is None):
-				# If you encounter any non-hours-like shit below, it's likely invalid
-				return False
-			elif counter >= marginValue:
+			# counter += 1
+			# if debug:
+			# 	print("date: " + str(cell.value) + " | checking: " + str(cellDown.value))
+			# if not (parseHours(cellDown.value) is None):
+			# 	# Got at least one valid string before the marginValue cutoff, so it's Valid.
+			# 	return True
+			# elif not (cellDown.value is None):
+			# 	# If you encounter any non-hours-like shit below, it's likely invalid
+			# 	return False
+			# elif counter >= marginValue:
 				# Unclear if invalid (only saw empty cells)
 				# CHECK FOR DATES EITHER SIDE
 				# Create a range and iterate
-				if cell.column == 1:
-					compareLeft = "<INVALID_DATE>"
-				else:
-					compareLeft = str(sheet.cell(row=cell.row, column=cell.column-1).value)
-				compareRight = str(sheet.cell(row=cell.row, column=cell.column+1).value)
-				if debug:
-					print("R: ")
-					print(compareRight)
-					print("L: ")
-					print(compareLeft)
-				# If either of left or right are valid dates.
-				if (parseDate(compareLeft) or parseDate(compareRight)):
-					return True
-				return False
+			if cell.column == 1:
+				compareLeft = "<INVALID_DATE>"
+			else:
+				compareLeft = str(sheet.cell(row=cell.row, column=cell.column-1).value)
+			compareRight = str(sheet.cell(row=cell.row, column=cell.column+1).value)
+			if debug:
+				print("R: ")
+				print(compareRight)
+				print("L: ")
+				print(compareLeft)
+			# If either of left or right are valid dates.
+			if (parseDate(compareLeft) or parseDate(compareRight)):
+				return True
+			return False
 
 def dateValidTypeC(cell, sheet):
 	debug = False
@@ -563,7 +579,194 @@ def ingestPDF(fileName):
 		return fullDict
 
 	#print("-------")
+
+def neatenDate(string, earliestDate=None):
+	if earliestDate and ("_NO_YEAR_YET_" in string):
+		return string.replace("_NO_YEAR_YET_", earliestDate.strftime("%Y"))
+		
+	year = "_NO_YEAR_YET_"
+	if earliestDate:
+		year = earliestDate.strftime("%Y")
+
+	findHalfDate = re.search(r'^\d{1,2}[-\/]\d{1,2}$', string)
+	if findHalfDate:
+		if earliestDate:
+			return findHalfDate.group().replace("/", "-") + "-" + earliestDate.strftime("%Y")
+		else:
+			return findHalfDate.group().replace("/", "-") + "-_NO_YEAR_YET_"
+	findFullDate = re.search(r'^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$', string)
+	if findFullDate:
+		return findFullDate.group().replace("/", "-")
 	
+	return None
+
+def neatenUnits(string):
+	toReturn = 0
+	hrs = re.search(r'\d+H', string)
+	try:
+		toReturn += int(hrs.group()[:-1]) # cut off the 'H'
+	except (IndexError, AttributeError):
+		pass
+	mins = re.search(r'\d+M', string)
+	try:
+		toReturn += float(mins.group()[:-1])/60
+	except (IndexError, AttributeError):
+		pass
+
+	if toReturn == 0:
+		return None
+
+	return str(toReturn)
+
+NT_EMPLOYEE_NAME_RE = r'^Name: '
+NT_EMPLOYER_RE = r'Employer(\s*)ABN(\s*)Name:'
+NT_PTI_RE = r'Total(\s*)Gross:'
+NT_PPE_RE = r'Pay(\s*)Period(\s*)From/To:'
+
+NT_DESC_SHORTLIST = [
+	"Perishable Allowance",
+	"PROF DEVELOPMENT AST",
+	"OT",
+	"Shiftduty",
+	"Salary Sacrifice",
+	"Salary Payment"
+]
+
+def ingestPayslip(fileName, version="WA"):
+	earliestDate = None
+	payPeriodLength = 14
+
+	psDict = {}
+	employeeName = None
+	employer = None
+	preTaxIncome = None
+	payPeriodEnding = None
+
+	with open(fileName, 'rb') as pdf:
+		pdfReader = PyPDF2.PdfReader(pdf)
+		if version == "WA":
+			return ingestPDF(fileName)
+			# TODO make this apply to WA.
+		elif version == "NT":
+			lines = []
+			for x in pdfReader.pages:
+				lines.extend(x.extract_text().split('\n'))
+			for index, line in enumerate(lines):
+				print(line)
+
+				temp = re.search(NT_PPE_RE, line)
+				if not payPeriodEnding and temp:
+					print("found ", temp.group())
+					dates = re.findall(r'\d{2}\s*\w{3}\s*\d{4}', line[temp.span()[1]:])
+					payPeriodEnding = dates[-1]
+					if not earliestDate:
+						earliestDate = datetime.strptime(dates[0].strip(), "%d %b %Y")
+					continue
+
+				temp = re.search(NT_EMPLOYEE_NAME_RE, line)
+				if not employeeName and temp:
+					employeeName = line[temp.span()[1]:].strip()
+					print("EMPLOYEE NAME ", employeeName)
+					continue
+
+				temp = re.search(NT_EMPLOYER_RE, line)
+				if not employer and temp:
+					employer = line[temp.span()[1]:].strip()
+					continue
+
+				temp = re.search(NT_PTI_RE, line)
+				if not preTaxIncome and temp:
+					preTaxIncome = line[temp.span()[1]:].strip().replace("$", "").replace(",", "")
+					continue
+
+				# If the line starts with a known shift description
+				shiftDesc = re.search(r'^\w+\s(\w+\s)*', line) # Find first sequential words
+				print("---", shiftDesc)
+				if shiftDesc and (shiftDesc.group().strip() in NT_DESC_SHORTLIST):
+					# Search for sequential lines that may have be inappropriately split
+					for x in range(index+1, index+3):
+						if x+1 >= len(lines):
+							break # reached the end
+						line = line.replace(",", "")
+
+						check = re.search(r'^\w+\s(\w+\s)*', lines[x])	#SHOULDN'T start with a word (should start with @ or digits)
+						if check:
+							break #stop and do no more, else risk overflowing into new shift entries.
+
+						check = re.search(r'@?\s*\d+\.\d{2}\s*(P\/H)?-?\$\d+\.\d{2}', lines[x]) #the rate/amount match string
+						if check:
+							line += check.group() #usually this will only be called once or twice
+							continue
+						check = re.search(r'\d+M', lines[x]) #the minutes match string
+						if check:
+							line += check.group() #usually this will only be called once or twice
+							continue
+					print("---", line)
+
+					description = shiftDesc.group().strip()
+
+					date = None
+					temp2 = re.search(r'\d{1,2}[-\/]\d{1,2}([-\/]\d{4})?', line) # DD/MM or DD/MM/YYYY match string
+					if temp2:
+						date = neatenDate(temp2.group().strip())
+
+					units = None
+					temp2 = re.search(r'(\d+H)(\s*(\d+M))?', line)
+					if temp2:
+						print("--- UNITS: ", temp2.group())
+						units = neatenUnits(temp2.group().strip())
+						print("--- UNITS: ", units)
+
+					rate = None
+					temp2 = re.search(r'@\s*\d+\.\d{2}', line)
+					if temp2:
+						rate = temp2.group().strip().replace("@", "")
+
+					amount = None
+					temp2 = re.finditer(r'-?\$\d+\.\d{2}', line)
+					if temp2:
+						temp2 = list(temp2)[-1] #pick the last match
+						print("--- temp2^")
+						amount = temp2.group().strip().replace("$", "")
+
+					if date:
+						date.replace("/", "-")
+						print(date)
+						if date not in psDict:
+							psDict.update({
+								date:[]
+								})
+						makeDict = {
+							"description":description
+						}
+						if units: 
+							makeDict.update({"units":units})
+						if rate: 
+							makeDict.update({"rate":rate})
+						makeDict.update({"amount":amount})	
+						psDict[date].append(makeDict)
+					else:
+						raise ValueError("cant find THE FUCKGIN DATE")
+
+			if earliestDate:
+				for key, value in psDict.copy().items():
+					if "_NO_YEAR_YET_" in key:
+						psDict.pop(key)
+						psDict.update({
+							neatenDate(key, earliestDate): value
+						})
+			print(json.dumps(psDict, indent=2))
+			ppStart = datetime.strptime(payPeriodEnding, "%d %b %Y") - timedelta(days=payPeriodLength)
+			fullDict = {
+				"name":fileName.split("/")[-1],
+				"employeeName":employeeName,
+				"employer":employer,
+				"totalPretaxIncome":preTaxIncome,
+				"payPeriodStart":ppStart.strftime("%d-%m-%Y"),
+				"payPeriodEnding":datetime.strptime(payPeriodEnding, "%d %b %Y").strftime("%d-%m-%Y"),
+				"data":psDict
+			}
+			return fullDict
 	
 
 #print(json.dumps(ingestPDF("test.pdf"), indent=4))

@@ -109,7 +109,8 @@ class studiesDataList(Resource):
 		if parsed_args["mode"] == "view":
 			try:
 				if parsed_args["filePath"].endswith(".pdf"):
-					shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
+					# shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
+					shelfEntry = pFx.ingestPayslip(parsed_args["filePath"], "NT")
 				elif parsed_args["filePath"].endswith(".xlsx"):
 					with shelve.open(SHELF_NAME_SETTINGS) as shlf:
 						baseRate = shlf["WAGE_BASE_RATE"]
@@ -169,7 +170,8 @@ class studiesDataList(Resource):
 			for obj in toIterate:
 				try:
 					if obj["filePath"].endswith(".pdf"):
-						shelfEntry.append(pFx.ingestPDF(obj["filePath"])) #'dressed up' inside the function
+						# shelfEntry.append(pFx.ingestPDF(obj["filePath"])) #'dressed up' inside the function
+						shelfEntry.append(pFx.ingestPayslip(obj["filePath"], "NT")) #'dressed up' inside the function
 					elif obj["filePath"].endswith(".xlsx"):
 						# Get the current settings
 						with shelve.open(SHELF_NAME_SETTINGS) as shlf:
@@ -358,7 +360,7 @@ api.add_resource(settings, "/api/settings")
 def start():
 	if __name__ == "__main__":
 		freeze_support()
-		webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+		# webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
 
