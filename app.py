@@ -16,7 +16,7 @@ import json
 import PayslipFunctions as pFx
 import payroll
 import utilities as ut
-
+import exports as exp
 
 # Initialise
 #To ensure this works packaged.
@@ -50,6 +50,8 @@ with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
 		shlf["USUAL_HOURS"] = None
 	if not "EMPLOYEE_NAME" in shlf:
 		shlf["EMPLOYEE_NAME"] = None
+	if not "WHICH_AUSSTATE_VERSION" in shlf:
+		shlf["WHICH_AUSSTATE_VERSION"] = None
 #?Do YAML config.
 
 def isConfigDone():
@@ -90,7 +92,7 @@ class studiesDataList(Resource):
 				"message":"Settings not yet configured."
 			}, 503
 		parser = reqparse.RequestParser()
-		parser.add_argument("filePath", required=True)
+		parser.add_argument("filePath")
 		parser.add_argument("mode", required=True)
 		# Optional
 		parser.add_argument("rosterType")
@@ -102,20 +104,27 @@ class studiesDataList(Resource):
 		parser.add_argument("employeeName2")
 		parser.add_argument("startDate2")
 		parser.add_argument("endDate2")	
+		parser.add_argument("exportID")
 		parsed_args = parser.parse_args()
 		print(json.dumps(parsed_args,indent=4))
+
+		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
+			stateVersion = shlf["WHICH_AUSSTATE_VERSION"]
 
 		# CREATE VIEW MODE ---
 		if parsed_args["mode"] == "view":
 			try:
 				if parsed_args["filePath"].endswith(".pdf"):
-					# shelfEntry = pFx.ingestPDF(parsed_args["filePath"])
-					shelfEntry = pFx.ingestPayslip(parsed_args["filePath"], "NT")
+					if stateVersion == "WA":
+						shelfEntry = pFx.ingestPDF(parsed_args["filePath"]) #ingestPDF is a legacy payslip ingestion algorithm that I haven't changed yet
+						shelfEntry["totalPretaxIncome"] = ut.deepSumAmounts(shelfEntry["data"])
+					elif stateVersion == "NT":
+						shelfEntry = pFx.ingestPayslip(parsed_args["filePath"], "NT", debug)
 				elif parsed_args["filePath"].endswith(".xlsx"):
 					with shelve.open(SHELF_NAME_SETTINGS) as shlf:
 						baseRate = shlf["WAGE_BASE_RATE"]
 						usualHours = shlf["USUAL_HOURS"]
-					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], parsed_args["rosterType"], datetime.strptime(parsed_args["startDate"], "%d-%m-%Y"), datetime.strptime(parsed_args["endDate"], "%d-%m-%Y")), baseRate, usualHours)
+					dataDict = payroll.analyseRoster(pFx.ingestRoster(parsed_args["filePath"], parsed_args["employeeName"], parsed_args["rosterType"], datetime.strptime(parsed_args["startDate"], "%d-%m-%Y"), datetime.strptime(parsed_args["endDate"], "%d-%m-%Y"), stateVersion), baseRate, usualHours, stateVersion)
 					shelfEntry = {
 						"name":parsed_args["filePath"].split("/")[-1],
 						"employeeName": parsed_args["employeeName"],
@@ -170,14 +179,17 @@ class studiesDataList(Resource):
 			for obj in toIterate:
 				try:
 					if obj["filePath"].endswith(".pdf"):
-						# shelfEntry.append(pFx.ingestPDF(obj["filePath"])) #'dressed up' inside the function
-						shelfEntry.append(pFx.ingestPayslip(obj["filePath"], "NT")) #'dressed up' inside the function
+						if stateVersion == "WA":
+							shelfEntry.append(pFx.ingestPDF(obj["filePath"])) #'dressed up' inside the function
+							print("SHELF ENTRY", shelfEntry)
+						elif stateVersion == "NT":
+							shelfEntry.append(pFx.ingestPayslip(obj["filePath"], "NT", debug)) #'dressed up' inside the function
 					elif obj["filePath"].endswith(".xlsx"):
 						# Get the current settings
 						with shelve.open(SHELF_NAME_SETTINGS) as shlf:
 							baseRate = shlf["WAGE_BASE_RATE"]
 							usualHours = shlf["USUAL_HOURS"]
-						dataDict = payroll.analyseRoster(pFx.ingestRoster(obj["filePath"], obj["employeeName"], obj["rosterType"], datetime.strptime(obj["startDate"], "%d-%m-%Y"), datetime.strptime(obj["endDate"], "%d-%m-%Y")), baseRate, usualHours)
+						dataDict = payroll.analyseRoster(pFx.ingestRoster(obj["filePath"], obj["employeeName"], obj["rosterType"], datetime.strptime(obj["startDate"], "%d-%m-%Y"), datetime.strptime(obj["endDate"], "%d-%m-%Y")), baseRate, usualHours, stateVersion)
 						shelfEntry.append({
 							"name":obj["filePath"].split('/')[-1],
 							"employeeName": obj["employeeName"],
@@ -204,7 +216,7 @@ class studiesDataList(Resource):
 						"message": "Error: " + str(e)
 					}, 404
 			# Entry now constructed to standard, lets identify the discrepancies.
-			discrepancies, globalDiscrepancies = ut.findDiscrepancies(shelfEntry)
+			discrepancies, globalDiscrepancies = ut.findDiscrepancies(shelfEntry, stateVersion)
 
 			with shelve.open(SHELF_NAME, writeback=True) as shlf:
 				newlyMadeID = str(shlf["_NEXT_ID"])
@@ -218,6 +230,15 @@ class studiesDataList(Resource):
 					"data":shlf[newlyMadeID],
 					"message":"Success"
 				}, 201
+		elif parsed_args["mode"] == "export":
+			with shelve.open(SHELF_NAME, writeback=True) as shlf:
+				studyInQuestion = shlf[parsed_args["exportID"]]
+				exportDict = None
+				if "view" in studyInQuestion:
+					exportDict = studyInQuestion["view"]["data"]
+				elif "compare" in studyInQuestion:
+					exportDict = studyInQuestion["compare"][0]["data"]
+				exp.exportStudy(exportDict, stateVersion)
 		else:
 			#Unknown mode.
 			return {
@@ -313,7 +334,8 @@ class settings(Resource):
 			toReturn.update({
 				"wage-base-rate":shlf["WAGE_BASE_RATE"],
 				"usual-hours":shlf["USUAL_HOURS"],
-				"employee-name":shlf["EMPLOYEE_NAME"]
+				"employee-name":shlf["EMPLOYEE_NAME"],
+				"which-state-version":shlf["WHICH_AUSSTATE_VERSION"]
 				})
 		return {
 			"data":toReturn,
@@ -325,6 +347,7 @@ class settings(Resource):
 		parser.add_argument("wage-base-rate")
 		parser.add_argument("usual-hours")
 		parser.add_argument("employee-name")
+		parser.add_argument("which-state-version")
 		parsed_args = parser.parse_args()
 		with shelve.open(SHELF_NAME_SETTINGS, writeback=True) as shlf:
 			wrong = {}
@@ -340,6 +363,11 @@ class settings(Resource):
 				shlf["EMPLOYEE_NAME"] = parsed_args["employee-name"]
 			else:
 				wrong.update({"Employee name":parsed_args["employee-name"]})
+			legalStates = ["WA", "NT", "SA", "VIC", "NSW", "QLD", "ACT"]
+			if not (parsed_args["which-state-version"] is None or (parsed_args["which-state-version"] not in legalStates)):
+				shlf["WHICH_AUSSTATE_VERSION"] = parsed_args["which-state-version"]
+			else:
+				wrong.update({"State version":parsed_args["which-state-version"]})
 		if not wrong == {}:
 			returnS = "The following inputs were invalid: "
 			for k,i in wrong.items():

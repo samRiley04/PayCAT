@@ -34,7 +34,7 @@
     <button class="btn btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#side-bar-collapse">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <a class="navbar-brand" href="#"><b>PayCAT</b></a>
+    <a class="navbar-brand" href="#"><b id="navbarTitle">PayCAT-</b></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -54,7 +54,7 @@
           <a class="nav-link" data-bs-toggle="modal" data-bs-target="#newEntryModal" role="button" onclick="clearFileSelect()">New</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Export</a>
+          <a class="nav-link" href='#' onclick="exportData()">Export</a>
         </li>
       </ul>
       <ul class="navbar-nav mb-2 mb-md-0">
@@ -244,7 +244,19 @@
           <div class="col" id="body-rowcol">
             <div class="row mb-3">
               <div class="col text-center">
-                <div id="discrepancies-header" class="h3 text-grey text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">DISCREPANCIES</div>
+                <div id="discrepancies-header" class="h3 text-secondary rounded rounded-2 bg-body-secondary border border-3 p-2">DISCREPANCIES</div>
+                 <div class="row">
+                  <div class="col">
+                    <div class="d-grid">
+                      <button class="btn btn-sm sam-faintgrey-btnoutline border border-3 text-secondary fw-semibold" type="button" onclick="expandAllCollapses('body-rowcol')">EXPAND ALL</button>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="d-grid">
+                      <button class="btn btn-sm border border-3 sam-faintgrey-btnoutline text-secondary fw-semibold" type="button">COLLAPSE ALL</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div hidden class="row mb-3" id='full-comparison-header'>
@@ -733,14 +745,29 @@
             </div>
           </div>
         </div>
-        <div class="row px-2">
-          <div class="col me-4">
+        <div class="row px-2 mb-3">
+          <div class="col">
             <label for="employee-name-input" class="form-label">Your name</label>
             <input id="employee-name-input" type="text" class="form-control">
             <div class="form-text">
               Ensure it matches exactly as your name appears in the roster.
             </div>
             
+          </div>
+        </div>
+        <div class="row px-2">
+          <label for="settings-state-WA" class="form-label">State</label>
+          <div class="col pe-1">
+            <div class="d-grid">
+              <input type="radio" class="btn-check" name="settings-statecheck" id="settings-state-WA" autocomplete="off" contentz="WA" checked>
+              <label class="btn btn-outline-primary" for="settings-state-WA">WA</label>
+            </div>
+          </div>
+          <div class="col ps-1">
+            <div class="d-grid">
+              <input type="radio" class="btn-check" name="settings-statecheck" id="settings-state-NT" autocomplete="off" contentz="NT">
+              <label class="btn btn-outline-primary" for="settings-state-NT">NT</label>
+            </div>
           </div>
         </div>
       </div>

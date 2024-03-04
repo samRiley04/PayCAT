@@ -21,40 +21,83 @@ def multi(a, b, sf=DEC_EIGHTPLACES):
 import custom_exceptions as ex
 
 
-"""
-rosterDict = {
-	"2023-10-31": "0700-1900",
-    "2023-11-01": "0700-1600",
-    "2023-11-02": "0700-1400",
-    ...
-}
-"""
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------
+# START HARDCODED SETTINGS
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 #DESCRIPTIONS
-DESCRIPTORS_SHIFTS_PENS = { #These rates are (penalty rate + 1) because when first calculated, they INCLUDE the base hours as well.
+DESCRIPTORS_SHIFTS_PENS = {}
+DESCRIPTORS_SHIFTS_PENS_WA = { #These rates are (penalty rate + 1) because when first calculated, they INCLUDE the base hours as well.
 	"1.2":"PENALTIES AT 20%",
 	"1.25":"PENALTIES AT 25%",
 	"1.5":"PENALTIES AT 50%",
 	"1.75":"PENALTIES AT 75%",
 	"PH2.5":"PUBLIC HOLIDAY 1.5" # This is a PENALTY too!
 }
-DESCRIPTORS_SHIFTS_ALL = DESCRIPTORS_SHIFTS_PENS.copy()
-DESCRIPTORS_SHIFTS_ALL.update({
+DESCRIPTORS_SHIFTS_PENS_NT = { #These rates are (penalty rate + 1) because when first calculated, they INCLUDE the base hours as well.
+	"1.15":"PENALTIES AT 15%",
+	"1.225":"PENALTIES AT 22.5%",
+	"1.5":"PENALTIES AT 50%",
+	"2":"PENALTIES AT 100%",
+	"PH2.5":"PUBLIC HOLIDAY 1.5" # This is a PENALTY too!
+}
+DESCRIPTORS_SHIFTS_ALL = {}
+DESCRIPTORS_SHIFTS_ALLOTHERS_WA = {
 	"1":"BASE HOURS",
 	"OT1.5":"OVERTIME @ 1.5",
 	"OT2":"OVERTIME @ 2.0",
 	"PHO1":"PUBLIC HOLIDAY OBSERVED",
 	"PH1":"BASE HOURS"
-})
+}
+DESCRIPTORS_SHIFTS_ALLOTHERS_NT = {
+	"1":"BASE HOURS",
+	"OT1.5":"OVERTIME 1.5x",
+	"OT2":"OVERTIME 2.0x",
+	"PHO1":"PUBLIC HOLIDAY OBSERVED",
+	"PH1":"BASE HOURS"
+}
 
 #OVERTIME
-OVERTIME_RATES = {
-	"80.0":1.5,
-	"120.0":2
+OVERTIME_RATES = {}
+# In a TWO WEEK Period.
+OVERTIME_RATES_WA = {
+	"80.0":{
+		"Mon": 1.5,
+		"Tue": 1.5,
+		"Wed": 1.5,
+		"Thu": 1.5,
+		"Fri": 1.5,
+		"Sat": 1.5,
+		"Sun": 1.5
+	},
+	"120.0":{
+		"Mon": 2,
+		"Tue": 2,
+		"Wed": 2,
+		"Thu": 2,
+		"Fri": 2,
+		"Sat": 2,
+		"Sun": 2
+	}
 }
+# In a FOUR WEEK PERIOD !!! i.e. >38hours/week averaged over 4 weeks.
+OVERTIME_RATES_NT = {
+	"152.0":{
+		"Mon": 1.5,
+		"Tue": 1.5,
+		"Wed": 1.5,
+		"Thu": 1.5,
+		"Fri": 1.5,
+		"Sat": 2,
+		"Sun": 2
+	}
+}
+
 #PENALTIES (INCLUDING base hours, i.e. rates + 1)
 #Legend: DOW:{after these hours, pay this rate}
-PENALTY_RATES = {
+PENALTY_RATES = {}
+PENALTY_RATES_WA = {
 	"Mon": {"0000":1.75, "0800":1, "1800":1.20},
 	"Tue": {"0000":1.25, "0800":1, "1800":1.20},
 	"Wed": {"0000":1.25, "0800":1, "1800":1.20},
@@ -62,6 +105,15 @@ PENALTY_RATES = {
 	"Fri": {"0000":1.25, "0800":1, "1800":1.20},
 	"Sat": {"0000":1.50},
 	"Sun": {"0000":1.75}
+}
+PENALTY_RATES_NT = {
+	"Mon": {"0000":1.225, "0800":1, "1800":1.15},
+	"Tue": {"0000":1.225, "0800":1, "1800":1.15},
+	"Wed": {"0000":1.225, "0800":1, "1800":1.15},
+	"Thu": {"0000":1.225, "0800":1, "1800":1.15},
+	"Fri": {"0000":1.225, "0800":1, "1800":1.15},
+	"Sat": {"0000":1.50},
+	"Sun": {"0000":2}
 }
 
 def CHECK_PENRATES():
@@ -75,13 +127,16 @@ def CHECK_PENRATES():
 			if not (isinstance(value, float) or isinstance(value, int)):
 				raise ex.Insurmountable("The penalty rates dictionary (PENALTY_RATES) entry for '{dow}' contains a value entry that is not float or integer - '{val}'.".format(dow=x, val=value))
 
-CHECK_PENRATES()
-
 # keys may ONLY be integers, as they are used as offset!!
 # (PH are paid at 150% pens + base from midnight to 8am the following day)
-PENALTY_RATES_PH_GENERIC = {
+PENALTY_RATES_PH_GENERIC = {}
+PENALTY_RATES_PH_GENERIC_WA = {
 	"0": {"0000":2.5},
 	"1": {"0000":2.5, "0800":1}
+}
+PENALTY_RATES_PH_GENERIC_NT = {
+	"0": {"0000":2.5},
+	"1": {"0000":1.225} #I.e. back to a normal day. Rest of the rates will be filled in by blending dictionaries.
 }
 
 def CHECK_PENRATES_PH_GENERIC():
@@ -91,33 +146,36 @@ def CHECK_PENRATES_PH_GENERIC():
 		if not re.search(r'^\d$', x): #If not a single digit
 			raise ex.Insurmountable("The generic public holiday rates dictionary (PENALTY_RATES_PH_GENERIC) contains a key that is not an integer.")
 
-CHECK_PENRATES_PH_GENERIC()
-
 PENALTY_RATES_PH = {} #Created dynamically later.
 PUBLIC_HOLIDAYS = {} #Created later by generatePublicHolidays()
 
 WAGE_BASE_RATE = None
 USUAL_HOURS = None #Used for PH observed calculation.
-PH_TOTAL_RATE = PENALTY_RATES_PH_GENERIC["0"]["0000"] #This is used to calculate the cutoff for a 'futile' shift on a PH (i.e. one where working a small amount of hours at PH rate earns you less than simply not working and getting the observed base rate)
-HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
-#ON CALL (in $ not a multipler)
-JMO_ON_CALL_HOURLY = 12.22
+PH_TOTAL_RATE = None #This is used to calculate the cutoff for a 'futile' shift on a PH (i.e. one where working a small amount of hours at PH rate earns you less than simply not working and getting the observed base rate)
+HOURS_BEFORE_OVERTIME = None #filled below
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------
+# END HARDCODED SETTINGS
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # This includes TRUE public holidays, as well as SUBSTITUTE public holidays (I.e. where a public holiday occurs on a weekend and is observed on the next Monday)
-def generatePublicHolidays(yearsList):
+def generatePublicHolidays(yearsList, stateVersion="WA"):
 	PUBLIC_HOLIDAYS_TEMP = {}
-	au_holidays = holidays.AU(subdiv='WA',years=yearsList)
+	au_holidays = holidays.AU(subdiv=stateVersion,years=yearsList)
 	for PH in au_holidays.items():
 		PUBLIC_HOLIDAYS_TEMP.update({PH[0]:PH[1]})
 	#For some reason Easter Sunday not included in this holidays library??
 	for event in au_holidays.get_named("Good Friday"):
 		PUBLIC_HOLIDAYS_TEMP.update({(event+timedelta(days=2)):"Easter Sunday"})
-	#For some reason this library gets the Kings Birthday wrong for 2024
-	for birthday in au_holidays.get_named("King's Birthday"):
-		if birthday.year == "2024":
-			PUBLIC_HOLIDAYS_TEMP.pop(birthday)
-			PUBLIC_HOLIDAYS_TEMP.update({datetime.strptime("23-09-2024", "%d-%m-%Y"):"King's Birthday"})
-			break
+	if stateVersion == "WA":
+		#For some reason this library gets the Kings Birthday wrong for 2024
+		for birthday in au_holidays.get_named("King's Birthday"):
+			if birthday.year == "2024":
+				PUBLIC_HOLIDAYS_TEMP.pop(birthday)
+				PUBLIC_HOLIDAYS_TEMP.update({datetime.strptime("23-09-2024", "%d-%m-%Y"):"King's Birthday"})
+				break
+	elif stateVersion == "NT":
+		pass #TODO Christmas even and NY eve.
 	# Holidays lib does get observed holiday days correct, but unfortunately the AMA agreement doesn't consider all of them as paid public holidays
 	# So some must be removed. Note - Christmas is not removed, see documentation 'payroll-functions.md'
 	dontRemoveFromWknds = ["Christmas Day", "Easter Sunday"]
@@ -206,7 +264,8 @@ def blendRatesDicts(first, second, debug=False):
 #hoursWorkedAlready (float) - the employee has worked this many hours already this fortnight.
 #hoursAmount (float) - the employe now is working this many hours, and we need to know what portions of it will be allocated to overtime rates.
 #returnValues (list) containing {"rate":rate, "hours":hours} objects
-def getCorrectOTRates(hoursWorkedAlready, hoursAmount, debug):
+#DoWToday - what day of the week this OT is being checked for (determines rate)
+def getCorrectOTRates(hoursWorkedAlready, hoursAmount, DoWToday, debug):
 	returnValues = []
 	# Create a more useable version of the overtime rates dict (hour-checkpoints now in float form)
 	toIterate = list(OVERTIME_RATES.keys())
@@ -222,20 +281,20 @@ def getCorrectOTRates(hoursWorkedAlready, hoursAmount, debug):
 			overhang = total - OTRateCheckpoint
 			# If all hoursAmount fits in this OT-rate band, just dump it all as the single rate.
 			if hoursAmount <= overhang:
-				rate = OVERTIME_RATES[str(OTRateCheckpoint)]
+				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
 				returnValues.append({"rate":rate, "hours":hoursAmount, "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				return returnValues
 			else:
 				#This means there are more hours than will fit in this OT-rate band.
 				#Deal with the maximum amount this band can.
-				rate = OVERTIME_RATES[str(OTRateCheckpoint)]
+				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
 				returnValues.append({"rate":rate, "hours":overhang, "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				#And remove those "dealt with" hours from the hoursAmount to be done.
 				hoursAmount -= overhang
 
 	#Will return from here if no OT required to be paid out.
 	if debug:
-		print("no OT required with given values. alreadyWorked: " + str(hoursWorkedAlready) + ", hoursAmount: " + str(hoursAmount))
+		print("Adding this overtime packet! ", returnValues)
 	return returnValues
 
 def getCorrectPenRates(START_SHIFT_TIME, anchorBack):
@@ -278,10 +337,60 @@ def expandForBaseHours(pensList):
 	# Multiple entries for base hours created per penalty, thus have to tidy again.
 	return tidyAndCollatePensList(pensList)
 
+def setGlobalDicts(stateVersion):
+	global DESCRIPTORS_SHIFTS_PENS
+	global DESCRIPTORS_SHIFTS_ALL
+	global OVERTIME_RATES
+	global PENALTY_RATES
+	global PENALTY_RATES_PH_GENERIC
+
+	if stateVersion == "WA":
+		global DESCRIPTORS_SHIFTS_PENS_WA
+		DESCRIPTORS_SHIFTS_PENS = DESCRIPTORS_SHIFTS_PENS_WA
+
+		DESCRIPTORS_SHIFTS_ALL = DESCRIPTORS_SHIFTS_PENS.copy()
+
+		global DESCRIPTORS_SHIFTS_ALLOTHERS_WA
+		DESCRIPTORS_SHIFTS_ALL.update(DESCRIPTORS_SHIFTS_ALLOTHERS_WA)
+		
+		global OVERTIME_RATES_WA
+		OVERTIME_RATES = OVERTIME_RATES_WA
+
+		global PENALTY_RATES_WA
+		PENALTY_RATES = PENALTY_RATES_WA
+
+		global PENALTY_RATES_PH_GENERIC_WA
+		PENALTY_RATES_PH_GENERIC = PENALTY_RATES_PH_GENERIC_WA
+	elif stateVersion == "NT":
+		global DESCRIPTORS_SHIFTS_PENS_NT
+		DESCRIPTORS_SHIFTS_PENS = DESCRIPTORS_SHIFTS_PENS_NT
+
+		DESCRIPTORS_SHIFTS_ALL = DESCRIPTORS_SHIFTS_PENS.copy()
+
+		global DESCRIPTORS_SHIFTS_ALLOTHERS_NT
+		DESCRIPTORS_SHIFTS_ALL.update(DESCRIPTORS_SHIFTS_ALLOTHERS_NT)
+		
+		global OVERTIME_RATES_NT
+		OVERTIME_RATES = OVERTIME_RATES_NT
+
+		global PENALTY_RATES_NT
+		PENALTY_RATES = PENALTY_RATES_NT
+
+		global PENALTY_RATES_PH_GENERIC_NT
+		PENALTY_RATES_PH_GENERIC = PENALTY_RATES_PH_GENERIC_NT
+	else:
+		raise ex.Insurmountable("Invalid state version: ", stateVersion)
 
 # VERY IMPORTANT NOTE: this function ASSUMES the roster given contains shifts worked over a fortnight!.
 # I.e. all shifts will be counted up and assumed to have occurred during a 14 day period.
-def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
+def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True):
+	setGlobalDicts(stateVersion)
+	print(stateVersion)
+	CHECK_PENRATES_PH_GENERIC()
+	CHECK_PENRATES()
+	PH_TOTAL_RATE = PENALTY_RATES_PH_GENERIC["0"]["0000"]
+	HOURS_BEFORE_OVERTIME = float(list(OVERTIME_RATES.keys())[0])
+
 	# debug=True
 	if rosterDict == {}:
 		raise ValueError("Found no recognisable dates in the roster for this given range.")
@@ -578,7 +687,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 					tempPensList.append({"rate":originalRate, "hours":remainingHours, "desc":penaltyEntry["desc"]})
 					runningHoursTotal += remainingHours
 					# Still have to add (penaltyEntry["hours"] - remainingHours) hours at overtime rate.
-					for entry in getCorrectOTRates(runningHoursTotal, (penaltyEntry["hours"]-remainingHours), debug):
+					for entry in getCorrectOTRates(runningHoursTotal, (penaltyEntry["hours"]-remainingHours), START_SHIFT_TIME.strftime("%a"), debug):
 						if entry["rate"] >= originalRate:	# Only add the OT version if it's rate is BETTER than the original. But preference recording hours at OT even if they are equivalent rates.
 							tempPensList.append(entry)
 						else:
@@ -587,7 +696,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, debug=False):
 					if debug:
 						print("OTCALC | splitted | added: " +str(penaltyEntry["hours"]))
 				else:
-					for entry in getCorrectOTRates(runningHoursTotal, penaltyEntry["hours"], debug):
+					for entry in getCorrectOTRates(runningHoursTotal, penaltyEntry["hours"], START_SHIFT_TIME.strftime("%a"), debug):
 						if entry["rate"] >= penaltyEntry["rate"]:	# Only add the OT version if it's rate is BETTER than the original. But preference recording hours at OT even if they are equivalent rates.
 							tempPensList.append(entry)
 						else:

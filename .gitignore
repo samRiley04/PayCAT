@@ -23,3 +23,8 @@ dist/*
 app.spec
 PayCat.spec
 static/make icns/*
+samtet.py
+22.py
+desting.py
+templates/test.html
+*.xlsx

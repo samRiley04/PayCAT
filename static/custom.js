@@ -88,6 +88,9 @@ function filterUniqueDates(data) {
 }
 
 function prettyMoneyString(anyFloat) {
+  if (typeof anyFloat == "undefined" || isNaN(anyFloat)) {
+    return ""
+  } 
   let strVersion = "$"+anyFloat.toFixed(2).toString()
   if (strVersion[1] == "-") { // if negative, swap the dollar and minus signs around
     strVersion = "-$"+strVersion.substring(2)
@@ -828,6 +831,12 @@ function displayNoSelection() {
   $('#content-column').html($('#template-storage > #noContent').clone().attr('id','noContent-clone'))
 }
 
+function expandAllCollapses(containerID) {
+  $("#"+containerID).find(".collapse").each(function () {
+    $(this).show()
+  })
+}
+
 //SETTINGS
 function loadExistingSettings() {
     if (validSettings) {
@@ -853,6 +862,17 @@ function loadExistingSettings() {
     $("#settingsModal").find("#usual-hours-input").val(data["data"]["usual-hours"])
     $("#settingsModal").find("#usual-hours-input").removeClass("is-invalid")
     $("#settingsModal").find("#employee-name-input").val(data["data"]["employee-name"])
+    if (data["data"]["which-state-version"] == "WA") {
+      $("#settingsModal").find("[name=settings-statecheck]").each(function() {
+        $(this).prop("checked", false)
+      })
+      $("#settingsModal").find("#settings-state-WA").prop("checked", true)
+    } else if (data["data"]["which-state-version"] == "NT") {
+      $("#settingsModal").find("[name=settings-statecheck]").each(function() {
+        $(this).prop("checked", false)
+      })
+      $("#settingsModal").find("#settings-state-NT").prop("checked", true)
+    }
   }).fail(function (data) {
     alert("Failed to get settings. Message: "+data["message"]);
   });
@@ -899,6 +919,8 @@ function submitSettings(modalID) {
     }
     // Doesn't validate employee name.
     let employeename = $("#"+modalID).find("#employee-name-input").val().trim()
+    // Doesn't validate which state
+    let stateVersion = $("#"+modalID).find("[name=settings-statecheck]:checked").attr("contentz")
 
     if (abort) {return 0}
 
@@ -909,13 +931,15 @@ function submitSettings(modalID) {
     data: JSON.stringify({
       "wage-base-rate":wage,
       "usual-hours":usualhours,
-      "employee-name":employeename
+      "employee-name":employeename,
+      "which-state-version":stateVersion
     }),
     timeout: 4000,
     headers: {
       'Access-Control-Allow-Origin': '*'
     }
   })).done(function (data) {
+      $("#navbarTitle").text("PayCAT-"+stateVersion)
       $("#"+modalID).modal('hide');
       if (!validSettings) {
         //Only really called once ever. If we are saving and this was the initial setting of config, remove that modal.
@@ -928,6 +952,34 @@ function submitSettings(modalID) {
   });
 }
 
+function exportData() {
+  let selectedID;
+  if (selectedSidebarEntry != null) {
+      selectedID = parseInt(selectedSidebarEntry.replace("-entry", ""))
+  } else {
+    return 0;
+  }
+
+  $.when($.ajax({
+    url: "http://localhost:8000/api/studydata",
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+      "mode":"export",
+      "exportID":selectedID
+    }),
+    timeout: 4000,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
+  })).done(function (data) {
+      //
+    alert("ASDASDADSADS")
+  }).fail(function(jqXHR) {
+      alert(jqXHR["responseJSON"]["message"])
+    });
+}
+
 function confirmSettingsNotUnset() {
   $.when($.ajax({
     url: "http://localhost:8000/api/settings",
@@ -937,10 +989,11 @@ function confirmSettingsNotUnset() {
       'Access-Control-Allow-Origin': '*'
     }
   })).done(function (data) {
-    if (data["data"]["wage-base-rate"] == null || data["data"]["usual-hours"] == null || data["data"]["employee-name"] == null) { //If user needs to set default settings.
+    if (data["data"]["wage-base-rate"] == null || data["data"]["usual-hours"] == null || data["data"]["employee-name"] == null || data["data"]["which-state-version"] == null) { //If user needs to set default settings.
       validSettings = false;
     } else {
       validSettings = true;
+      $("#navbarTitle").text("PayCAT-"+data["data"]["which-state-version"])
     }
 
     if (!validSettings) {
@@ -953,6 +1006,11 @@ function confirmSettingsNotUnset() {
       $("#settingsModalFirstTime").find("#settings-save-button").attr("onclick", "submitSettings('settingsModalFirstTime')")
       $("#settingsModalFirstTime").attr("data-bs-backdrop", "static")
       $("#settingsModalFirstTime").attr("data-bs-keyboard", "false")
+      //Unfortunately requires renaming of the labels and radio buttons also.
+      $("#settingsModalFirstTime").find("#settings-state-WA").attr("id", "settings-state-WA-FT")
+      $("#settingsModalFirstTime").find("[for=settings-state-WA]").attr("for", "settings-state-WA-FT")
+      $("#settingsModalFirstTime").find("#settings-state-NT").attr("id", "settings-state-NT-FT")
+      $("#settingsModalFirstTime").find("[for=settings-state-NT]").attr("for", "settings-state-NT-FT")
       // Open the config modal.
       $('#settingsModalFirstTime').modal('show');
 
@@ -964,7 +1022,6 @@ function confirmSettingsNotUnset() {
       // // Open the config modal.
       // $('#settingsModal').modal('show');
     }
-    return 1
   }).fail(function (data) {
     alert("Unable to load configuration from server. Message: "+data["message"]);
   });

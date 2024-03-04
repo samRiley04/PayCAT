@@ -558,7 +558,7 @@ def ingestPDF(fileName):
 				employeeName.strip() 
 			elif totalPretaxIncome == "" and "3. TOTAL TAXABLE EARNINGS" in line:
 				words = pageOfInterest[index+1].strip().split(" ")
-				totalPretaxIncome = words[0]
+				totalPretaxIncome = words[0].replace(",","")
 			elif payPeriodEnding == "" and "Period End Date: " in line:
 				words = line.split(' ')
 				payPeriodEnding = words[-1]
@@ -632,7 +632,7 @@ NT_DESC_SHORTLIST = [
 	"Salary Payment"
 ]
 
-def ingestPayslip(fileName, version="WA"):
+def ingestPayslip(fileName, version="WA", debug=True):
 	earliestDate = None
 	payPeriodLength = 14
 
@@ -641,6 +641,8 @@ def ingestPayslip(fileName, version="WA"):
 	employer = None
 	preTaxIncome = None
 	payPeriodEnding = None
+
+	defaultDate = datetime.strptime("01-01-9001", "%d-%m-%Y")
 
 	with open(fileName, 'rb') as pdf:
 		pdfReader = PyPDF2.PdfReader(pdf)
@@ -651,6 +653,14 @@ def ingestPayslip(fileName, version="WA"):
 			lines = []
 			for x in pdfReader.pages:
 				lines.extend(x.extract_text().split('\n'))
+			# VALIDATION
+			for x in lines:
+				look = re.search("NORTHERN TERRITORY GOVERNMENT", x)
+				if look:
+					break
+			else:
+				raise ValueError("This doesn't look like an NTG payslip." )
+
 			for index, line in enumerate(lines):
 				print(line)
 
@@ -680,7 +690,8 @@ def ingestPayslip(fileName, version="WA"):
 					continue
 
 				# If the line starts with a known shift description
-				shiftDesc = re.search(r'^\w+\s(\w+\s)*', line) # Find first sequential words
+				# Assumption - descriptions don't contain numbers.
+				shiftDesc = re.search(r'^[A-Za-z]+\s([A-Za-z]+\s)*', line) # Find first sequential words
 				print("---", shiftDesc)
 				if shiftDesc and (shiftDesc.group().strip() in NT_DESC_SHORTLIST):
 					# Search for sequential lines that may have be inappropriately split
@@ -689,11 +700,11 @@ def ingestPayslip(fileName, version="WA"):
 							break # reached the end
 						line = line.replace(",", "")
 
-						check = re.search(r'^\w+\s(\w+\s)*', lines[x])	#SHOULDN'T start with a word (should start with @ or digits)
+						check = re.search(r'^[A-Za-z]+\s([A-Za-z]+\s)*', lines[x])	#SHOULDN'T start with a word (should start with @ or digits)
 						if check:
 							break #stop and do no more, else risk overflowing into new shift entries.
 
-						check = re.search(r'@?\s*\d+\.\d{2}\s*(P\/H)?-?\$\d+\.\d{2}', lines[x]) #the rate/amount match string
+						check = re.search(r'@?\s*\d+\.\d{2}\s*(P\/H)?\s*-?\$\d+\.\d{2}', lines[x]) #the rate/amount match string
 						if check:
 							line += check.group() #usually this will only be called once or twice
 							continue
@@ -723,30 +734,32 @@ def ingestPayslip(fileName, version="WA"):
 						rate = temp2.group().strip().replace("@", "")
 
 					amount = None
-					temp2 = re.finditer(r'-?\$\d+\.\d{2}', line)
+					temp2 = re.findall(r'-?\$\d+\.\d{2}', line)
 					if temp2:
+						print("TEMP2: ", temp2)
 						temp2 = list(temp2)[-1] #pick the last match
-						print("--- temp2^")
-						amount = temp2.group().strip().replace("$", "")
+						amount = temp2.strip().replace("$", "")
 
-					if date:
-						date.replace("/", "-")
-						print(date)
-						if date not in psDict:
-							psDict.update({
-								date:[]
-								})
-						makeDict = {
-							"description":description
-						}
-						if units: 
-							makeDict.update({"units":units})
-						if rate: 
-							makeDict.update({"rate":rate})
-						makeDict.update({"amount":amount})	
-						psDict[date].append(makeDict)
-					else:
-						raise ValueError("cant find THE FUCKGIN DATE")
+					if not date:
+						date = defaultDate.strftime("%d-%m-%Y")
+						defaultDate += timedelta(days=1)
+						if debug:
+							print("PAYSLIP --- creating a fake date as we could not find one. For: ", line)
+					date.replace("/", "-")
+					print(date)
+					if date not in psDict:
+						psDict.update({
+							date:[]
+							})
+					makeDict = {
+						"description":description
+					}
+					if units: 
+						makeDict.update({"units":units})
+					if rate: 
+						makeDict.update({"rate":rate})
+					makeDict.update({"amount":amount})	
+					psDict[date].append(makeDict)
 
 			if earliestDate:
 				for key, value in psDict.copy().items():
@@ -755,6 +768,17 @@ def ingestPayslip(fileName, version="WA"):
 						psDict.update({
 							neatenDate(key, earliestDate): value
 						})
+			# SORT psDict
+			keysList = []
+			for x in psDict:
+				keysList.append(datetime.strptime(x, "%d-%m-%Y"))
+			sortedStuff = {}
+			for y in sorted(keysList):
+				ki = y.strftime("%d-%m-%Y")
+				sortedStuff.update({
+					ki:psDict[ki]
+				})
+			psDict = sortedStuff
 			print(json.dumps(psDict, indent=2))
 			ppStart = datetime.strptime(payPeriodEnding, "%d %b %Y") - timedelta(days=payPeriodLength)
 			fullDict = {

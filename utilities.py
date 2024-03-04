@@ -19,7 +19,7 @@ def deepSumAmounts(dataDict):
 	for date, hoursList in dataDict.items():
 		for hoursEntry in hoursList:
 			sumAmt+=float(hoursEntry["amount"])
-	return locale.currency(sumAmt, symbol=False, grouping=True)
+	return locale.currency(sumAmt, symbol=False, grouping=False)
 
 # In the format DD-MM-YYYY (which aren't easily sortable with native list.sort())
 def sortDateStrings(datesList):
@@ -38,6 +38,11 @@ def sortDateStrings(datesList):
 # Global discrepancies
 DATE_RANGE_TOO_LONG = "The date range selected for '{filename}' is more than a fortnight ({startdate} to {enddate}). Please be aware overtime calculations will be incorrect."
 DATES_NOT_ALIGNED = "The dates included in '{filename}' ({sd1} to {ed1}) and '{filename2}' ({sd2} to {ed2}) do not align."
+
+CHRISTMAS_EVE_ALERT = "The shifts in '{filename}' ({startdate} to {enddate}) could potentially cover Christmas Eve - please note that PayCAT does not yet correctly recognise partial-day public holidays. (In this case 7pm-12am being a public holiday). "
+NEWYEARS_EVE_ALERT = "The shifts in '{filename}' ({startdate} to {enddate}) could potentially cover New Years Eve - please note that PayCAT does not yet correctly recognise partial-day public holidays. (In this case 7pm-12am being a public holiday). "
+
+PLACEHOLDER_DATE = "When ingesting '{filename}' PayCAT was required to insert a placeholder date to ensure shifts weren't missed. (These are dates from 01-01-9001 onwards)"
 
 # Discrepancies
 SHIFT_MISSING = "Shift missing"
@@ -58,7 +63,7 @@ HOUR_TYPE_D = "{hourtype} is not listed in both files for this date."
 DAY_TOTAL = "Day total different"
 DAY_TOTAL_D = ""
 
-def findDiscrepancies(compareList):
+def findDiscrepancies(compareList, stateVersion):
 	debug = True
 	discrepancies = {}
 	globalDiscrepancies = []
@@ -90,6 +95,20 @@ def findDiscrepancies(compareList):
 			continue #doesn't matter if payslips cover more than 14 days - user cannot control this, so why tell them?
 		if (letsCheck[-1] - letsCheck[0]) > timedelta(days=14):
 			globalDiscrepancies.append(DATE_RANGE_TOO_LONG.format(filename=side["name"], startdate=letsCheck[0].strftime("%d-%m-%Y"), enddate=letsCheck[-1].strftime("%d-%m-%Y")))
+		
+		# Checking for NT specific holiday things.
+		if stateVersion == "NT":
+			# Christmas Eve alert
+			if (letsCheck[0] <= datetime.strptime("25-12-"+str(letsCheck[0].year), "%d-%m-%Y")) and (letsCheck[-1] >= datetime.strptime("26-12-"+str(letsCheck[-1].year), "%d-%m-%Y")):
+				globalDiscrepancies.append(CHRISTMAS_EVE_ALERT.format(filename=side["name"], startdate=letsCheck[0].strftime("%d-%m-%Y"), enddate=letsCheck[-1].strftime("%d-%m-%Y")))
+			# New Years Eve alert
+			if (letsCheck[0] <= datetime.strptime("31-12-"+str(letsCheck[0].year), "%d-%m-%Y")) and (letsCheck[-1] >= datetime.strptime("1-1-"+str(letsCheck[0].year+1), "%d-%m-%Y")):
+				globalDiscrepancies.append(NEWYEARS_EVE_ALERT.format(filename=side["name"], startdate=letsCheck[0].strftime("%d-%m-%Y"), enddate=letsCheck[-1].strftime("%d-%m-%Y")))
+
+			if letsCheck[-1] >= datetime.strptime("01-01-9001", "%d-%m-%Y"):
+				globalDiscrepancies.append(PLACEHOLDER_DATE.formate(filename=side["name"]))
+
+
 		if debug:
 			print(storeList)
 			print(letsCheck)
