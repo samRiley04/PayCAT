@@ -1,5 +1,5 @@
 from tkinter import Tk     
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, asksaveasfile
 import locale
 locale.setlocale(locale.LC_ALL, '')
 import json
@@ -11,6 +11,17 @@ def filePicker(q):
 	root = Tk()
 	root.withdraw()
 	file_path = askopenfilename()
+	q.put(file_path)
+
+def fileSaver(q, defaultName):
+	root = Tk()
+	root.withdraw()
+	file_path = asksaveasfile(initialfile = defaultName, defaultextension=".xlsx")
+	try:
+		file_path = file_path.name
+	except AttributeError:
+		q.put(None)
+		return 1
 	q.put(file_path)
 
 # Because ingestRoster() is fed into analyseRoster(), and it doesn't know a few things about the payslip data, it must be wrapped with a few more pieces on information before being stored.

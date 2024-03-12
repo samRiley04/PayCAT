@@ -10,7 +10,7 @@ import custom_exceptions as ex
 import payroll as pr
 
 EXPORT_DURATION = 28 #days
-def exportStudy(studyDict, stateVersion="WA"):
+def exportStudy(studyDict, stateVersion="WA", saveFilePath=None):
 	wb = openpyxl.Workbook()
 	sheet = wb.active
 
@@ -47,8 +47,13 @@ def exportStudy(studyDict, stateVersion="WA"):
 		for hoursType in hoursList:
 			sheet.cell(row=descDict[hoursType["description"]], column=dateDict[date]).value = float(hoursType["units"])
 
-	filepath = "./export-" + datetime.now().strftime("%d-%m-%Y-%H%M") + ".xlsx"
-	wb.save(filepath)
+	if not saveFilePath:
+		print("USING DEFAULT FILE NAME")
+		saveFilePath = "./export-" + datetime.now().strftime("%Y-%m-%d-%H%M") + ".xlsx"
+	# if not re.search(r'^\./', saveFilePath):
+	# 	raise ValueError("File Path not in correct format")
+	wb.save(saveFilePath) #No real way of knowing if this was successful
+	return True
 
 # exportStudy({
 #     "13-02-2023": [

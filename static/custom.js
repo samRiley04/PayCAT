@@ -831,10 +831,18 @@ function displayNoSelection() {
   $('#content-column').html($('#template-storage > #noContent').clone().attr('id','noContent-clone'))
 }
 
-function expandAllCollapses(containerID) {
+function changeAllCollapses(containerID, action) {
+if (action === "show") {
   $("#"+containerID).find(".collapse").each(function () {
-    $(this).show()
+    let currentElement = new bootstrap.Collapse(this, {toggle:false})
+    currentElement.show()
   })
+} else if (action === "hide") {
+  $("#"+containerID).find(".collapse").each(function () {
+    let currentElement = new bootstrap.Collapse(this, {toggle:false})
+    currentElement.hide()
+  })
+}
 }
 
 //SETTINGS
@@ -957,6 +965,7 @@ function exportData() {
   if (selectedSidebarEntry != null) {
       selectedID = parseInt(selectedSidebarEntry.replace("-entry", ""))
   } else {
+    alert("Select a study in order to export it.")
     return 0;
   }
 
@@ -973,11 +982,12 @@ function exportData() {
       'Access-Control-Allow-Origin': '*'
     }
   })).done(function (data) {
-      //
-    alert("ASDASDADSADS")
-  }).fail(function(jqXHR) {
+    alert("File saved successfully.")
+  }).fail(function(jqXHR, textStatus, errorThrown) {
+    if (!errorThrown === "REQUEST TIMEOUT") { //This 408 code thrown when user cancels the save dialogue
       alert(jqXHR["responseJSON"]["message"])
-    });
+    }
+  });
 }
 
 function confirmSettingsNotUnset() {

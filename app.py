@@ -238,7 +238,31 @@ class studiesDataList(Resource):
 					exportDict = studyInQuestion["view"]["data"]
 				elif "compare" in studyInQuestion:
 					exportDict = studyInQuestion["compare"][0]["data"]
-				exp.exportStudy(exportDict, stateVersion)
+				defaultName = "export-{dateStr}.xlsx".format(dateStr=datetime.now().strftime("%Y-%m-%d-%H%M"))
+				saveFilePath = "./{defaultName}".format(defaultName=defaultName)
+				if __name__ == "__main__":
+					q = Queue()
+					p = Process(target=ut.fileSaver, args=(q,defaultName))
+					p.start()
+					saveFilePath = q.get()
+					p.join()
+				print("SAVE FILE PATH: ", saveFilePath)
+				if not saveFilePath:
+					print("No file name selected, cancelling.")
+					return {
+						"data":None,
+						"message":"File save select cancelled."
+					}, 408 #REQUEST TIMEOUT
+				expResult = exp.exportStudy(exportDict, stateVersion, saveFilePath)
+				if expResult:
+					return {
+						"data":None,
+						"message":"File saved successfully."
+					}, 200
+				return {
+						"data":None,
+						"message":"File saving error."
+					}, 400
 		else:
 			#Unknown mode.
 			return {
@@ -388,7 +412,7 @@ api.add_resource(settings, "/api/settings")
 def start():
 	if __name__ == "__main__":
 		freeze_support()
-		# webbrowser.open('http://localhost:8000', new=1, autoraise=True)
+		webbrowser.open('http://localhost:8000', new=1, autoraise=True)
 		app.run(host='0.0.0.0', port="8000", debug=True)
 
 
