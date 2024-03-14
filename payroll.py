@@ -12,6 +12,7 @@ getcontext().rounding = ROUND_HALF_DOWN
 DEC_EIGHTPLACES = Decimal(10) ** -8
 DEC_FOURPLACES = Decimal(10) ** -4
 DEC_TWOPLACES = Decimal(10) ** -2
+DEC_ONEPLACE = Decimal(10) ** -1
 
 import re
 
@@ -55,7 +56,8 @@ DESCRIPTORS_SHIFTS_ALLOTHERS_NT = {
 	"OT1.5":"OVERTIME 1.5x",
 	"OT2":"OVERTIME 2.0x",
 	"PHO1":"PUBLIC HOLIDAY OBSERVED",
-	"PH1":"BASE HOURS"
+	"PH1":"BASE HOURS",
+	"0":"UNPAID MEAL BREAK"
 }
 
 #OVERTIME
@@ -278,17 +280,17 @@ def getCorrectOTRates(hoursWorkedAlready, hoursAmount, DoWToday, debug):
 		total = hoursWorkedAlready + hoursAmount
 		# Will there be ANY hours in this OT rate band (as definited by checkpoint as the lower limit)
 		if total > OTRateCheckpoint:
-			overhang = total - OTRateCheckpoint
+			overhang = total - Decimal(OTRateCheckpoint)
 			# If all hoursAmount fits in this OT-rate band, just dump it all as the single rate.
 			if hoursAmount <= overhang:
 				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
-				returnValues.append({"rate":rate, "hours":hoursAmount, "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
+				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_DOWN)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN), "hours":hoursAmount.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				return returnValues
 			else:
 				#This means there are more hours than will fit in this OT-rate band.
 				#Deal with the maximum amount this band can.
 				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
-				returnValues.append({"rate":rate, "hours":overhang, "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
+				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_DOWN)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN), "hours":overhang.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				#And remove those "dealt with" hours from the hoursAmount to be done.
 				hoursAmount -= overhang
 
@@ -499,7 +501,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 
 	# -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO -------- SECTION TWO	
 
-	runningHoursTotal = 0 #used exclusively to keep track of when OT must be enacted.
+	runningHoursTotal = Decimal(0) #used exclusively to keep track of when OT must be enacted.
 	#NOW take each shift, and create a list of penalties, how many hours they apply to, and the description of that data.
 	#Call that list pensList (its declared later on.)
 	for shift in tempDict:
@@ -660,18 +662,51 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 		if debug:
 			print({shift:pensList})
 
+		# NT ONLY - INCORPORATE UNPAID MEAL BREAKS
+		# Subtract 30 minutes from ANY shift and enter it as a meal break. This does not contribute to overtime.
+		# Allocates the meal break during the CHEAPEST pay rate during your shift.
+		pensListMealbreak = [] #Stored here so they aren't counted in OT calculations.
+		if stateVersion == "NT":
+			allocateInCheapestRate = True
+			print("----------------------- meal break BIT")
+			print(json.dumps(pensList, indent=2))
+			mealBreakShift = (0, pensList[0])
+			for index, entry in enumerate(pensList):
+				if allocateInCheapestRate: #Just in case I need to change it's functionality to be the opposite
+					if entry["rate"] < mealBreakShift[1]["rate"] and entry["hours"] >= 0.5:
+						mealBreakShift = (index, entry)
+				else: 
+					if entry["rate"] > mealBreakShift[1]["rate"] and entry["hours"] >= 0.5:
+						mealBreakShift = (index, entry)
+
+			#Validate - if there are no shifts of any duration more than 30 mins, don't take a meal break.
+			if mealBreakShift[1]["hours"] >= 0.5:
+				mealBreakShift[1]["hours"] -= 0.5
+				pensList[mealBreakShift[0]] = mealBreakShift[1]
+				pensListMealbreak.append({"rate":0,
+						"hours":0.5,
+						"desc":DESCRIPTORS_SHIFTS_ALL["0"]})
+
+
+			print("---------------------- meal break END")
+			print(json.dumps(pensList, indent=2))
+
+
 	# -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR -------- SECTION FOUR
 
 		#ENSURE OT is factored in. (pens will be wrong if we breach the overtime hours limit and don't record the rate as the OT rate.)
 		# If we have already breached the rate OR we will with the addition of this shift.
-		shiftHrsDuration = (END_SHIFT_TIME - START_SHIFT_TIME).seconds/3600
-		if runningHoursTotal >= HOURS_BEFORE_OVERTIME or (runningHoursTotal+shiftHrsDuration) > HOURS_BEFORE_OVERTIME:
+		shiftHrsDuration = Decimal((END_SHIFT_TIME - START_SHIFT_TIME).seconds/3600)
+		if stateVersion == "NT" and len(pensListMealbreak) != 0: #NT ONLY - if we took a meal break, remove that time.
+			shiftHrsDuration -= Decimal(0.5)
+
+		if runningHoursTotal >= Decimal(HOURS_BEFORE_OVERTIME) or (runningHoursTotal+shiftHrsDuration) > HOURS_BEFORE_OVERTIME:
 			if debug:
 				print('OVERTIME ACTIVATED')
 			tempPensList = []
 			for index, penaltyEntry in enumerate(pensList):
 				# SORT OUT the 'remaining hours' portion of this rate, if applicable (i.e. a part will be at pre-OT rate, and a part at OT rate.)
-				remainingHours = HOURS_BEFORE_OVERTIME - runningHoursTotal
+				remainingHours = Decimal(HOURS_BEFORE_OVERTIME) - runningHoursTotal
 				if remainingHours > 0:
 					if penaltyEntry["hours"] <= remainingHours:
 						# No more OT logic to be done as we know this penalty entry isnt large enough to breach the OT threshhold, so just move on.
@@ -687,22 +722,22 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 					tempPensList.append({"rate":originalRate, "hours":remainingHours, "desc":penaltyEntry["desc"]})
 					runningHoursTotal += remainingHours
 					# Still have to add (penaltyEntry["hours"] - remainingHours) hours at overtime rate.
-					for entry in getCorrectOTRates(runningHoursTotal, (penaltyEntry["hours"]-remainingHours), START_SHIFT_TIME.strftime("%a"), debug):
+					for entry in getCorrectOTRates(runningHoursTotal.quantize(DEC_TWOPLACES), (Decimal(penaltyEntry["hours"])-remainingHours), START_SHIFT_TIME.strftime("%a"), debug):
 						if entry["rate"] >= originalRate:	# Only add the OT version if it's rate is BETTER than the original. But preference recording hours at OT even if they are equivalent rates.
 							tempPensList.append(entry)
 						else:
-							tempPensList.append({"rate":originalRate, "hours":penaltyEntry["hours"]-remainingHours, "desc":penaltyEntry["desc"]})
-					runningHoursTotal += (penaltyEntry["hours"] - remainingHours)
+							tempPensList.append({"rate":originalRate, "hours":Decimal(penaltyEntry["hours"])-remainingHours, "desc":penaltyEntry["desc"]})
+					runningHoursTotal += (Decimal(penaltyEntry["hours"]) - remainingHours)
 					if debug:
 						print("OTCALC | splitted | added: " +str(penaltyEntry["hours"]))
 				else:
-					for entry in getCorrectOTRates(runningHoursTotal, penaltyEntry["hours"], START_SHIFT_TIME.strftime("%a"), debug):
+					for entry in getCorrectOTRates(runningHoursTotal, Decimal(penaltyEntry["hours"]), START_SHIFT_TIME.strftime("%a"), debug):
 						if entry["rate"] >= penaltyEntry["rate"]:	# Only add the OT version if it's rate is BETTER than the original. But preference recording hours at OT even if they are equivalent rates.
 							tempPensList.append(entry)
 						else:
 							# This only usually occurs if a sunday is worked and considered overtime - sunday rate is better (75% pens + base > 1.5)
 							tempPensList.append(penaltyEntry)
-					runningHoursTotal += penaltyEntry["hours"]
+					runningHoursTotal += Decimal(penaltyEntry["hours"])
 					if debug:
 						print("OTCALC | no split required | added: " +str(penaltyEntry["hours"]))
 			pensList = tempPensList
@@ -712,6 +747,11 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 				print("----------------------")
 		else:
 			runningHoursTotal += shiftHrsDuration
+		runningHoursTotal = runningHoursTotal.quantize(DEC_TWOPLACES)
+
+		# NT ONLY - Add in MEAL BREAKS now OT is calculated.
+		if stateVersion == "NT":
+			pensList.extend(pensListMealbreak)
 
 		if debug:
 			print("runningHoursTotal = " + str(runningHoursTotal))
