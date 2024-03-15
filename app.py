@@ -20,7 +20,6 @@ import exports as exp
 
 # Initialise
 #To ensure this works packaged.
-
 base_dir = '.'
 if hasattr(sys, '_MEIPASS'):
     base_dir = os.path.join(sys._MEIPASS)
