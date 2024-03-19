@@ -109,11 +109,11 @@ PENALTY_RATES_WA = {
 	"Sun": {"0000":1.75}
 }
 PENALTY_RATES_NT = {
-	"Mon": {"0000":1.225, "0800":1, "1800":1.15},
-	"Tue": {"0000":1.225, "0800":1, "1800":1.15},
-	"Wed": {"0000":1.225, "0800":1, "1800":1.15},
-	"Thu": {"0000":1.225, "0800":1, "1800":1.15},
-	"Fri": {"0000":1.225, "0800":1, "1800":1.15},
+	"Mon": {"0000":1.225, "0600":1, "1800":1.15},
+	"Tue": {"0000":1.225, "0600":1, "1800":1.15},
+	"Wed": {"0000":1.225, "0600":1, "1800":1.15},
+	"Thu": {"0000":1.225, "0600":1, "1800":1.15},
+	"Fri": {"0000":1.225, "0600":1, "1800":1.15},
 	"Sat": {"0000":1.50},
 	"Sun": {"0000":2}
 }
@@ -161,7 +161,7 @@ HOURS_BEFORE_OVERTIME = None #filled below
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # This includes TRUE public holidays, as well as SUBSTITUTE public holidays (I.e. where a public holiday occurs on a weekend and is observed on the next Monday)
-def generatePublicHolidays(yearsList, stateVersion="WA"):
+def generatePublicHolidays(yearsList, stateVersion):
 	PUBLIC_HOLIDAYS_TEMP = {}
 	au_holidays = holidays.AU(subdiv=stateVersion,years=yearsList)
 	for PH in au_holidays.items():
@@ -436,7 +436,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 		print("rangeUPPER: " + datetime.strftime(rangeUpper,"%d-%m-%Y"))
 
 	# Using the start and end times of our roster, create all potential public holiday dates we could encounter.
-	PUBLIC_HOLIDAYS = generatePublicHolidays(createDateRangeYears(rangeLower, rangeUpper))
+	PUBLIC_HOLIDAYS = generatePublicHolidays(createDateRangeYears(rangeLower, rangeUpper), stateVersion)
 
 	if baseHours > HOURS_BEFORE_OVERTIME:
 		overtimeHours = baseHours - HOURS_BEFORE_OVERTIME
