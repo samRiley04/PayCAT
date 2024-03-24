@@ -1,33 +1,9 @@
-//PAGELOAD:
-// 1. updateSidebarList()
-// 2. displayNoSelection() - DONT auto select an entry, and display the empty payslip page.
-//PAYSLIP ENTRY CLICKED:
-// 1. showPDFEntry(pdfShortName)
-//PAYSLIP ENTRY DELETED:
-// 1. deletePDFEntry(pdfShortName)
-// 2. displayNoSelection()
-
-//IDs in template: 
-// -- item-template (Top level card template)
-// -- item-date (date of an entry)
-// -- item-entry-container (contains all the rows of description/etc. entries)
-// -- item-amount (total earned that day)
-// -- item-rateunits (going pay rate and how much)
-// -- item-description (type of work)
-// -- item-total (**generated** by summing all of the amounts in each day)
-// -- item-entry (row containing all things for a desc/unitrates/amount set)
-// -- payslip-container (contains everything for a given payslip entry - in the left list)
-// -- template-storage (contains ALL templates for generating views.)
-
-// ITEMS:
-// -- #noContent - basic no content jumbotron.
-
 let selectedSidebarEntry = null
 let validSettings = false
 
 // For creating new viewMode or compareMode entry()
 // FS means file select
-// Need global variables because the value of the DOM element is shortened for readability.
+// Need global variables because the value of the DOM element is shortened for readability (and thus doesn't hold the full path).
 let viewModeFS1path = ""
 let compareModeFS1path = ""
 let compareModeFS2path = ""
@@ -36,7 +12,7 @@ let compareModeFS2path = ""
 const BADGES_RED = ["Negative hours"]
 const BADGES_YELLOW = []
 
-//Shamelessly plagarised from stack overflow and modified for non US dates
+//Shamelessly plagarised from stack overflow, and modified for non US dates
 function isValidDate(dateString) {
     // First check for the pattern
     if(!/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(dateString))
@@ -191,6 +167,7 @@ function newViewmode() {
       $('#newEntryModal').modal('hide');
       updateSidebarList();
       clearFileSelect();
+      selectSidebarEntry(Object.keys(data["data"])[0]); //Only returns one entryID, which is the one just created.
     }).fail(function (jqXHR) {
       alert(jqXHR["responseJSON"]["message"])
     });
@@ -235,6 +212,7 @@ function newComparemode() {
       $('#newEntryModal').modal('hide');
       updateSidebarList();
       clearFileSelect();
+      selectSidebarEntry(Object.keys(data["data"])[0]);
     }).fail(function(jqXHR) {
       alert(jqXHR["responseJSON"]["message"])
     });
@@ -988,6 +966,21 @@ function exportData() {
       alert(jqXHR["responseJSON"]["message"])
     }
   });
+}
+
+function delay(time) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+
+function exportPDF() {
+  //Collapse the sidebar
+  if ($("#side-bar-collapse").hasClass("show")) {
+    $("#button-toggle-sidebar").click()
+  }
+  //Expand all entries
+  $("#content-column").find("[name=expandAllButton]").click()
+  //Wait for animations
+  delay(700).then(() => window.print());
 }
 
 function confirmSettingsNotUnset() {

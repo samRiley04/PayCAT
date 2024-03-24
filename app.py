@@ -63,6 +63,10 @@ def isConfigDone():
 def home():
 	return render_template("index.html")
 
+@app.route("/help")
+def help():
+	return render_template("help.html")
+
 # ------–––– API ------––––
 
 class studiesDataList(Resource):
@@ -145,7 +149,7 @@ class studiesDataList(Resource):
 					shlf['_NEXT_ID'] += 1
 					shlf[newlyMadeID] = {"view":shelfEntry}
 					return {
-						"data":shlf[newlyMadeID],
+						"data":{newlyMadeID: shlf[newlyMadeID]},
 						"message":"Success"
 					}, 201
 			except (FileNotFoundError):
@@ -226,7 +230,7 @@ class studiesDataList(Resource):
 					"globalDiscrepancies": globalDiscrepancies
 				}
 				return {
-					"data":shlf[newlyMadeID],
+					"data":{newlyMadeID: shlf[newlyMadeID]},
 					"message":"Success"
 				}, 201
 		elif parsed_args["mode"] == "export":

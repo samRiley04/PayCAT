@@ -31,7 +31,7 @@
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
   <div class="container-fluid">
-    <button class="btn btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#side-bar-collapse">
+    <button class="btn btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#side-bar-collapse" id="button-toggle-sidebar">
       <span class="navbar-toggler-icon"></span>
     </button>
     <a class="navbar-brand" href="#"><b id="navbarTitle">PayCAT-</b></a>
@@ -40,24 +40,24 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarCollapse">
       <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item dropdown" hidden>
-          <!--  -->
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            New
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="newPDF();">Payslip...</a></li>
-            <li><a class="dropdown-item" href="#">Roster...</a></li>
-          </ul>
-        </li>
         <li class="nav-item">
           <a class="nav-link" data-bs-toggle="modal" data-bs-target="#newEntryModal" role="button" onclick="clearFileSelect()">New</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href='#' onclick="exportData()">Export</a>
+        <li class="nav-item dropdown">
+          <!--  -->
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Export
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="exportPDF();">PDF</a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportData();">EXCEL</a></li>
+          </ul>
         </li>
       </ul>
       <ul class="navbar-nav mb-2 mb-md-0">
+        <li class="nav-item">
+          <a class="nav-link" role="button" href="/help">Help</a>
+        </li>
         <li class="nav-item">
           <a class="nav-link" data-bs-toggle="modal" data-bs-target="#settingsModal" role="button" onclick="loadExistingSettings()">Configure</a>
         </li>
@@ -123,6 +123,18 @@
     <div class="row py-2 mx-0" id="viewMode-body">
       <!-- Only column. -->
       <div class="col" id='card-container'>
+        <div class="row">
+          <div class="col">
+            <div class="d-grid">
+              <button class="btn btn-sm sam-faintgrey-btnoutline border border-3 text-secondary fw-semibold" type="button" onclick="changeAllCollapses('card-container','show')" name="expandAllButton">EXPAND ALL</button>
+            </div>
+          </div>
+          <div class="col">
+            <div class="d-grid">
+              <button class="btn btn-sm border border-3 sam-faintgrey-btnoutline text-secondary fw-semibold" type="button" onclick="changeAllCollapses('card-container','hide')">COLLAPSE ALL</button>
+            </div>
+          </div>
+        </div>
         <!-- TEMPLATE CARD -->
         <div class="card my-1" id='item-template' hidden>
           <div class="card-header" role="button" data-bs-toggle="collapse" href="#collapseID">
@@ -229,7 +241,7 @@
       </div>
     </div>
 
-    <!-- NEW !! #compareMode Template - NOT CHANGED IDS YET -->
+    <!-- NEW !! #compareMode Template -->
     <div class="row py-2 mx-0" id="compareMode-body-new"> <!--newID-->
       <div class="col">
         <!-- HEADER ROW -->
@@ -248,7 +260,7 @@
                  <div class="row">
                   <div class="col">
                     <div class="d-grid">
-                      <button class="btn btn-sm sam-faintgrey-btnoutline border border-3 text-secondary fw-semibold" type="button" onclick="changeAllCollapses('body-rowcol','show')">EXPAND ALL</button>
+                      <button class="btn btn-sm sam-faintgrey-btnoutline border border-3 text-secondary fw-semibold" type="button" onclick="changeAllCollapses('body-rowcol','show')" name="expandAllButton">EXPAND ALL</button>
                     </div>
                   </div>
                   <div class="col">
