@@ -63,13 +63,18 @@ function filterUniqueDates(data) {
   })
 }
 
+// Partly plagarised from stack overflow
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+}
+
 function prettyMoneyString(anyFloat) {
   if (typeof anyFloat == "undefined" || isNaN(anyFloat)) {
     return ""
   } 
-  let strVersion = "$"+anyFloat.toFixed(2).toString()
+  let strVersion = "$"+numberWithCommas(anyFloat.toFixed(2).toString())
   if (strVersion[1] == "-") { // if negative, swap the dollar and minus signs around
-    strVersion = "-$"+strVersion.substring(2)
+    strVersion = "-$"+numberWithCommas(strVersion.substring(2).toString())
   }
   return strVersion
 }
@@ -285,6 +290,7 @@ function selectSidebarEntry(pdfID) {
   loadEntry(pdfID);
 }
 
+//This is a disgusting function please dont crucify me for it.
 function loadEntry(pdfID) {
   //GET information about it from the database, then fill it out in the main block.
     $.when($.ajax({
@@ -356,6 +362,10 @@ function loadEntry(pdfID) {
             $('#'+newID+"-body").find('#'+cardID).find("#item-entry"+i).find("#item-amount").text(prettyMoneyString(parseFloat(entry["amount"]))) 
           }
           //finally record the sum of all amounts
+          if (sumAmount < 0) {
+              $('#'+newID+"-body").find('#'+cardID).find("#item-total").removeClass("text-success")
+              $('#'+newID+"-body").find('#'+cardID).find("#item-total").addClass("text-danger")
+            }
           $('#'+newID+"-body").find('#'+cardID).find("#item-total").text(prettyMoneyString(sumAmount))
         }
         //Record the heading entries
@@ -955,14 +965,14 @@ function exportData() {
       "mode":"export",
       "exportID":selectedID
     }),
-    timeout: 4000,
+    timeout: 10000,
     headers: {
       'Access-Control-Allow-Origin': '*'
     }
   })).done(function (data) {
     alert("File saved successfully.")
   }).fail(function(jqXHR, textStatus, errorThrown) {
-    if (!errorThrown === "REQUEST TIMEOUT") { //This 408 code thrown when user cancels the save dialogue
+    if (!(errorThrown === "REQUEST TIMEOUT")) { //This 408 code thrown when user cancels the save dialogue
       alert(jqXHR["responseJSON"]["message"])
     }
   });
@@ -1031,19 +1041,5 @@ function confirmSettingsNotUnset() {
 
 }
 
-//Event listeneres etc..
-function setup() {
-  //FOR COMPAREMODE - Resets the value on clicking the file selectors
-  // $("#compareMode-FS1").on('click touchstart', function() {
-  //   $(this).val('');
-  //   compareModeFS1 = ""
-  // });
-  // $("#compareMode-FS2").on('click touchstart', function() {
-  //   $(this).val('');
-  //   compareModeFS2 = ""
-  // });
-}
- 
 confirmSettingsNotUnset()
-setup()
 

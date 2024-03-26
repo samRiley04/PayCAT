@@ -146,9 +146,9 @@ def ingestTypeA(sheet, findName, debug):
 					tempHoursCounts.update({cell.column_letter:1})
 				else:
 					tempHoursCounts.update({cell.column_letter:(tempHoursCounts[cell.column_letter]+1)})
-	if len(tempHoursCounts) == {}:
+	if tempHoursCounts == {}:
 		# Did not find a name.
-		raise ex.NoRecognisedShifts("Could not find any valid shift hours.")
+		raise ex.NoRecognisedShifts()
 	# NOW pick only the column with most hours
 	hoursCol = list(tempHoursCounts.keys())[0] #Pick any, the first element will do.
 	for candidateCol, count in tempHoursCounts.items():
@@ -433,6 +433,8 @@ def ingestRoster(fileName, findName, rosterFormat, startDate, endDate, ignoreHid
 	except (ex.NoRecognisedDates):
 		# This is usually suggestive of the wrong roster format being provided!
 		raise ValueError("Found no recognisable dates in the roster '{fileName}'. Did you select the correct roster format?".format(fileName=fileName.split("/")[-1]))
+	except (ex.NoRecognisedShifts):
+		raise ValueError(f"Could not find any valid shift-hours in this roster {fileName.split('/')[-1]}")
 	#Now all the roster is ingested, trim the dict using the start/end dates.
 	if debug:
 		print("output dict:")

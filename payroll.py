@@ -48,8 +48,9 @@ DESCRIPTORS_SHIFTS_ALLOTHERS_WA = {
 	"1":"BASE HOURS",
 	"OT1.5":"OVERTIME @ 1.5",
 	"OT2":"OVERTIME @ 2.0",
-	"PHO1":"PUBLIC HOLIDAY OBSERVED",
-	"PH1":"BASE HOURS"
+	"PHO1":"PUBLIC HOLIDAY (OBSERVED)",
+	"PH1":"BASE HOURS",
+	"PDA":"PROFESSIONAL DEVT ALLOW"
 }
 DESCRIPTORS_SHIFTS_ALLOTHERS_NT = {
 	"1":"BASE HOURS",
@@ -59,6 +60,14 @@ DESCRIPTORS_SHIFTS_ALLOTHERS_NT = {
 	"PH1":"BASE HOURS",
 	"0":"UNPAID MEAL BREAK"
 }
+
+DESCRIPTORS_OTHER_WA = [
+	"SMART SALARY SP FIXED",
+	"MEAL - DINNER MED PRACT",
+	"SICK LVE NO CERT FULLPAY",
+	"OVERTIME @1.75" #this one is a bit sus.. does that exist?
+]
+DESCRIPTORS_OTHER_NT = []
 
 #OVERTIME
 OVERTIME_RATES = {}
@@ -257,8 +266,7 @@ def blendRatesDicts(first, second, debug=False):
 				elif not checkpoint in toReturn:
 					toReturn.update({checkpoint:thisRatesDict[checkpoint]}) #This is just for readability - could be one big OR statement.
 	if debug:
-		print("--> BLENDED Rates Dicts created: ")
-		print(toReturn)
+		print("--> BLENDED Rates Dicts created: ", toReturn)
 		print("--> USING: " + str(first) + " and "+ str(second))
 	return toReturn
 

@@ -12,6 +12,7 @@
     <script src="{{ url_for('static', filename='bootstrap-5.3.2-dist/js/bootstrap.bundle.min.js') }}"></script>
 
     <script type="module" src="{{ url_for('static', filename='md-block.js') }}"></script>
+    <script type="text/javascript" src="/static/jquery.min.js"></script>
 
   </head>
   <body style="background-color: var(--bs-gray-200)">
@@ -30,6 +31,13 @@
       <div class="row justify-content-center">
         <div class="col-2 d-none d-lg-block d-xl-block"></div>
         <div class="col-lg bg-white">
+          <div class="row">
+            <div class="col m-2">
+              <div class="d-grid">
+                <a class="btn btn-outline-secondary" id="dl-button" href="{{ url_for('static', filename='user-help.md') }}">Download this help document</a>
+              </div>
+            </div>
+          </div>
           <div class="flex m-4">
             <md-block src="{{ url_for('static', filename='user-help.md') }}"></md-block>
           </div>
@@ -37,5 +45,4 @@
         <div class="col-2 d-none d-lg-block d-xl-block"></div>
       </div>
     </div>
-
   </body>

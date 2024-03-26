@@ -240,7 +240,12 @@ class studiesDataList(Resource):
 				if "view" in studyInQuestion:
 					exportDict = studyInQuestion["view"]["data"]
 				elif "compare" in studyInQuestion:
-					exportDict = studyInQuestion["compare"][0]["data"]
+					for study in studyInQuestion["compare"]:
+						if study["name"].endswith(".xlsx"):
+							exportDict = study["data"]
+							break
+					else:
+						exportDict = studyInQuestion["compare"][0]["data"]
 				defaultName = "export-{dateStr}.xlsx".format(dateStr=datetime.now().strftime("%Y-%m-%d-%H%M"))
 				saveFilePath = "./{defaultName}".format(defaultName=defaultName)
 				if __name__ == "__main__":
@@ -256,7 +261,7 @@ class studiesDataList(Resource):
 						"data":None,
 						"message":"File save select cancelled."
 					}, 408 #REQUEST TIMEOUT
-				expResult = exp.exportStudy(exportDict, stateVersion, saveFilePath)
+				expResult, expMessage = exp.exportStudy(exportDict, stateVersion, saveFilePath)
 				if expResult:
 					return {
 						"data":None,
@@ -264,7 +269,7 @@ class studiesDataList(Resource):
 					}, 200
 				return {
 						"data":None,
-						"message":"File saving error."
+						"message":f"File saving error - {expMessage}"
 					}, 400
 		else:
 			#Unknown mode.

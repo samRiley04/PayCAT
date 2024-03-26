@@ -1,1 +1,1 @@
-pyinstaller --onefile --add-data="./templates":"templates" --add-data="./static":"static" --hidden-import holidays.countries --clean --name="PayCat" --icon PayCAT.icns ./app.py
+pyinstaller --onefile --windowed --add-data="./templates":"templates" --add-data="./static":"static" --hidden-import holidays.countries --clean --name="PayCat" --icon PayCAT.icns ./app.py
