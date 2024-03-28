@@ -10,12 +10,15 @@ from datetime import datetime, timedelta
 def filePicker(q):
 	root = Tk()
 	root.withdraw()
+	root.wm_attributes('-topmost', 1)
 	file_path = askopenfilename()
 	q.put(file_path)
+	return True
 
 def fileSaver(q, defaultName):
 	root = Tk()
 	root.withdraw()
+	root.wm_attributes('-topmost', 1)
 	file_path = asksaveasfile(initialfile = defaultName, defaultextension=".xlsx")
 	try:
 		file_path = file_path.name

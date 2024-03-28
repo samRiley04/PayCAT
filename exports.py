@@ -46,7 +46,6 @@ def exportStudy(studyDict, stateVersion, saveFilePath=None):
 	startDate = datetime.strptime(tempList[0], "%d-%m-%Y")
 	endDate = datetime.strptime(tempList[-1], "%d-%m-%Y")
 	while startDate <= endDate:
-		print(f"RUN ONCE {start}")
 		sheet.cell(row=1,column=start).value = startDate.strftime("%d-%m-%Y")
 		dateDict.update({startDate.strftime("%d-%m-%Y"):start})
 		startDate += timedelta(days=1)
@@ -59,8 +58,9 @@ def exportStudy(studyDict, stateVersion, saveFilePath=None):
 			try:
 				daRow = descDict[hoursType["description"].strip()]
 			except KeyError as e:
-				print(f"Key error: {e}")
-				return False, f"Descriptions don't match current state setting of '{stateVersion}'"
+				print(f"Key error: {e} - SKIPPING THIS IN THE EXPORT!")
+				continue
+				# return False, f"Descriptions don't match current state setting of '{stateVersion}'"
 			try:
 				daCol = dateDict[date]
 			except KeyError as e:

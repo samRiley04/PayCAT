@@ -83,7 +83,7 @@ When exporting a Compare study, it will export only the .xlsx (roster) file pref
 
 Recommended settings for PDF files:
 - Print to PDF.
-- Macos: Select "Background graphics". Set "Scale" to "Customised" -> 50%.
+- Google Chrome, Microsoft Edge: Select "Background graphics". Set "Scale" to "Customised" -> 50%.
 
 **Notes for exporting**
 - The program struggles with exporting payslips because there are many different types of random descriptions. It struggles to identify this and may throw errors.
