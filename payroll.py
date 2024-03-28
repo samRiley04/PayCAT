@@ -17,7 +17,7 @@ DEC_ONEPLACE = Decimal(10) ** -1
 import re
 
 def multi(a, b, sf=DEC_EIGHTPLACES):
-	return (a*b).quantize(sf, rounding=ROUND_HALF_DOWN)
+	return (a*b).quantize(sf, rounding=ROUND_HALF_UP)
 
 import custom_exceptions as ex
 
@@ -292,13 +292,13 @@ def getCorrectOTRates(hoursWorkedAlready, hoursAmount, DoWToday, debug):
 			# If all hoursAmount fits in this OT-rate band, just dump it all as the single rate.
 			if hoursAmount <= overhang:
 				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
-				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_DOWN)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN), "hours":hoursAmount.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
+				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_UP)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_UP), "hours":hoursAmount.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				return returnValues
 			else:
 				#This means there are more hours than will fit in this OT-rate band.
 				#Deal with the maximum amount this band can.
 				rate = OVERTIME_RATES[str(OTRateCheckpoint)][DoWToday]
-				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_DOWN)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN), "hours":overhang.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
+				returnValues.append({"rate":(Decimal(rate).quantize(DEC_EIGHTPLACES, rounding=ROUND_HALF_UP)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_UP), "hours":overhang.quantize(DEC_TWOPLACES), "desc":DESCRIPTORS_SHIFTS_ALL["OT"+str(rate)]})
 				#And remove those "dealt with" hours from the hoursAmount to be done.
 				hoursAmount -= overhang
 
@@ -779,7 +779,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 			# Make sure to record penalties correctly by separating base hours and penalty rate values
 			if entry["desc"] in DESCRIPTORS_SHIFTS_PENS.values():
 				#Just have to modify the rate before continuing.
-				rateProper = multi(Decimal(entry["rate"]-1), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN) #weird but only way to get 5's to round down. Trust me.
+				rateProper = multi(Decimal(entry["rate"]-1), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_UP) #weird but only way to get 5's to round down. Trust me.
 				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
 				dirtyAmountSum += thisAmount
 				pensListProper.append({
@@ -790,7 +790,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 				})
 			else:
 				#Add as per usual
-				rateProper = multi(Decimal(entry["rate"]), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_DOWN) #See same term above.
+				rateProper = multi(Decimal(entry["rate"]), Decimal(WAGE_BASE_RATE)).quantize(DEC_FOURPLACES, rounding=ROUND_HALF_UP) #See same term above.
 				thisAmount = (Decimal(rateProper)*Decimal(entry["hours"])).quantize(DEC_TWOPLACES)
 				dirtyAmountSum += thisAmount
 				pensListProper.append({

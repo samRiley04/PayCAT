@@ -168,7 +168,8 @@ def ingestTypeA(sheet, findName, debug):
 					# We have reached the next layer of dates, so should stop looking for now (otherwise we will bleed into adjacent weeks.)
 				if (not cell.value is None) and (cell.value == findName or re.search(r'[(\[{]'+re.escape(findName)+r'[)\]}]\s*$', str(cell.value))):
 					# IF the cell contains your name but just after some other text, include that also.
-					hrs = parseHours(sheet[hoursCol+str(cell.row)].value)
+					cellVal = sheet[hoursCol+str(cell.row)].value
+					hrs = parseHours(cellVal)
 					if (hrs is None) and isValidShiftCode(cellVal): #parseHours couldn't find valid hours, check if it could be a shift code
 						if SHIFT_CODES == {}:
 							print("finding SHIFT CODES")

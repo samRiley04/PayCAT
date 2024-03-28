@@ -12,6 +12,7 @@ You can use PayCAT by creating either a "Compare" mode study, or a "View" mode s
 - [Compare Mode](#using-compare-mode)
 - [View Mode](#using-view-mode)
 - [Exporting Data](#exporting-data)
+- [Overtime](#overtime)
 
 ## Using "Compare" Mode
 ___
@@ -76,13 +77,22 @@ As above, most types of rosters are supported.
 ## Exporting Data
 ___
 
-Exporting is most useful for rosters "calculated" into hours and total dollar amounts. To export, click the study you want to export and go the the Top bar -> Export -> EXCEL or PDF.
+Exporting is most useful for rosters. This is because a study of a roster involves "calculating" total hours worked and dollar amounts, whereas studies of payslips just involves displays the data in a pretty way. To export, click the study you want to export and go the the Top bar -> Export -> EXCEL or PDF.
 
-When exporting a Compare study, it will export only the .xlsx (roster) file preferentially. If both or neither are rosters, it exports the left file. Don't ask. 
+When exporting a Compare study, it will export only the .xlsx (roster) file preferentially. If both or neither are rosters, it exports the left file. (Don't ask.)
 
 Recommended settings for PDF files:
-- Print to PDF
+- Print to PDF.
 - Macos: Select "Background graphics". Set "Scale" to "Customised" -> 50%.
 
 **Notes for exporting**
 - The program struggles with exporting payslips because there are many different types of random descriptions. It struggles to identify this and may throw errors.
+
+### Overtime
+___
+
+Including unrostered overtime into your calculations is simple. Just modify your roster to include the hours you have claimed overtime, and create a View or Compare mode study as normal. PayCAT does the rest of it for you.
+
+- For Type B and C Rosters: Just change the time period in the body of the spreadsheet ("0800-1600 -> 0800-1930")
+- For Type A Rosters: Insert a new row. Fill in the hours-column with the shift (including overtime hours) you worked on a given date. For that same date, remove your name from the original shift you were rostered for, and put it next to the one you just added.
+
