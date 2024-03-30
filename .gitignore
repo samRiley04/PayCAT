@@ -5,12 +5,9 @@ test.pdf
 PayCAT-shelf.db
 server.log
 test.py
-TESTING/*
+SAM-TESTING/*
 __pycache__/*
 ads.py
-test-nsurg.py
-test-OPH.py
-test-payroll.py
 jeff.py
 bigtest.py
 PayCAT-shelf-settings.db

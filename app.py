@@ -1,3 +1,13 @@
+
+	# DEAR DEVELOPER,
+	#
+	# If you are reading this, please understand that this project started out as an educational exercise.
+	#
+	# It is not worth my time to refactor old code that was written inefficiently or not to standard.
+	#
+	# While I have done my best to write documentation, I appreciate that a good proportion of this codebase will
+	# be extremely difficult to anyone other than me. The main purpose of the documentation is to jog my own memory.
+
 import flask
 from flask import Flask, redirect, url_for, render_template, flash, request, session, send_from_directory, current_app
 from flask_restful import Resource, Api, reqparse, inputs
@@ -18,6 +28,9 @@ import payroll
 import utilities as ut
 import exports as exp
 
+PAYCAT_VERSION = "1.0.0"
+PAYCAT_VERSION_DISPLAYSTR = f"PayCAT v{PAYCAT_VERSION} - last updated 30 March 2024"
+
 # Initialise
 #To ensure this works packaged.
 base_dir = '.'
@@ -31,7 +44,6 @@ if getattr(sys, 'frozen', False):
         template_folder=os.path.join(base_dir, 'templates'))
 else:
     app = Flask("PayCAT")
-
 
 logging.basicConfig(filename='server.log', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S%p')
 api = Api(app)
@@ -367,7 +379,8 @@ class settings(Resource):
 				"wage-base-rate":shlf["WAGE_BASE_RATE"],
 				"usual-hours":shlf["USUAL_HOURS"],
 				"employee-name":shlf["EMPLOYEE_NAME"],
-				"which-state-version":shlf["WHICH_AUSSTATE_VERSION"]
+				"which-state-version":shlf["WHICH_AUSSTATE_VERSION"],
+				"paycat-version":PAYCAT_VERSION
 				})
 		return {
 			"data":toReturn,
@@ -421,7 +434,9 @@ def start():
 	if __name__ == "__main__":
 		freeze_support()
 		webbrowser.open('http://localhost:8000', new=1, autoraise=True)
-		app.run(host='0.0.0.0', port="8000", debug=True)
+		print("STARTING PAYCAT...")
+		print(PAYCAT_VERSION_DISPLAYSTR)
+		app.run(host='0.0.0.0', port="8000", debug=False)
 
 
 start()

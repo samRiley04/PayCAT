@@ -869,6 +869,7 @@ function loadExistingSettings() {
       })
       $("#settingsModal").find("#settings-state-NT").prop("checked", true)
     }
+    $("#PayCAT-version-string").text(data["data"]["paycat-version"])
   }).fail(function (data) {
     alert("Failed to get settings. Message: "+data["message"]);
   });
