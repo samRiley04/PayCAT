@@ -139,7 +139,6 @@ def CHECK_PENRATES():
 				raise ex.Insurmountable("The penalty rates dictionary (PENALTY_RATES) entry for '{dow}' contains a value entry that is not float or integer - '{val}'.".format(dow=x, val=value))
 
 # keys may ONLY be integers, as they are used as offset!!
-# (PH are paid at 150% pens + base from midnight to 8am the following day)
 PENALTY_RATES_PH_GENERIC = {}
 PENALTY_RATES_PH_GENERIC_WA = {
 	"0": {"0000":2.5},
@@ -147,7 +146,7 @@ PENALTY_RATES_PH_GENERIC_WA = {
 }
 PENALTY_RATES_PH_GENERIC_NT = {
 	"0": {"0000":2.5},
-	"1": {"0000":1.225} #I.e. back to a normal day. Rest of the rates will be filled in by blending dictionaries.
+	"1": {"0000":1.225, "0600":1, "1800":1.15} #I.e. back to a normal day.
 }
 
 def CHECK_PENRATES_PH_GENERIC():
@@ -170,7 +169,7 @@ HOURS_BEFORE_OVERTIME = None #filled below
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # This includes TRUE public holidays, as well as SUBSTITUTE public holidays (I.e. where a public holiday occurs on a weekend and is observed on the next Monday)
-def generatePublicHolidays(yearsList, stateVersion):
+def generatePublicHolidays(yearsList, stateVersion, debug=True):
 	PUBLIC_HOLIDAYS_TEMP = {}
 	au_holidays = holidays.AU(subdiv=stateVersion,years=yearsList)
 	for PH in au_holidays.items():
@@ -189,7 +188,7 @@ def generatePublicHolidays(yearsList, stateVersion):
 		pass #TODO Christmas even and NY eve.
 	# Holidays lib does get observed holiday days correct, but unfortunately the AMA agreement doesn't consider all of them as paid public holidays
 	# So some must be removed. Note - Christmas is not removed, see documentation 'payroll-functions.md'
-	dontRemoveFromWknds = ["Christmas Day", "Easter Sunday"]
+	dontRemoveFromWknds = ["Christmas Day", "Easter Saturday", "Easter Sunday"]
 	for date, name in PUBLIC_HOLIDAYS_TEMP.copy().items():
 		if date.strftime("%a") in ["Sat", "Sun"] and name not in dontRemoveFromWknds: #Double negative - equates to if name in removefromweekends
 			PUBLIC_HOLIDAYS_TEMP.pop(date)
@@ -198,20 +197,23 @@ def generatePublicHolidays(yearsList, stateVersion):
 	theList = list(PUBLIC_HOLIDAYS_TEMP.keys())
 	for x in sorted(theList):
 		PUBLIC_HOLIDAYS.update({x:PUBLIC_HOLIDAYS_TEMP[x]})
+	if debug:
+		print(f"JUST GENERATED THESE {stateVersion} PUBLIC HOLIDAYS: {PUBLIC_HOLIDAYS}")
 	return PUBLIC_HOLIDAYS
 
 # DIRECTLY modifies PENALTY_RATES_PH.
-def makePenratePHEntry(date, debug=False):
+def makePenratePHEntry(date, debug=True):
 	for offset in PENALTY_RATES_PH_GENERIC:
 		if offset == "0":
 				# Day 0 - Rate NOT blended.
 				PENALTY_RATES_PH.update({date+timedelta(days=int(offset)):PENALTY_RATES_PH_GENERIC[offset]})
+				if debug:
+					print(f"ADDED: {date+timedelta(days=int(offset))} with rates: {PENALTY_RATES_PH_GENERIC[offset]}")
 		else:
 			# Day 1 (AKA day after PH) - Rate MUST be blended with the normal rates seen on that day of the week (so as to include the after 6pm pen, or so that the rest of the day is at 1.75 or 1.5 for weekends.)
-			blendedRates = blendRatesDicts(PENALTY_RATES_PH_GENERIC[offset], PENALTY_RATES[date.strftime("%a")])
+			blendedRates = blendRatesDicts(PENALTY_RATES_PH_GENERIC[offset], PENALTY_RATES[(date+timedelta(days=int(offset))).strftime("%a")])
 			if debug:
-				print("Adding blended rate dict!")
-				print(blendedRates)
+				print(f"ADDED: {date+timedelta(days=int(offset))} with rates: {blendedRates}")
 			PENALTY_RATES_PH.update({date+timedelta(days=int(offset)):blendedRates})
 
 def createDateRangeDays(start, end):
@@ -239,7 +241,7 @@ def createDateRangeYears(start,end):
 # E.g. {"0000":1.25} and {"0000":1.5} returns {"0000":1.5}
 # E.g. {"0000":2.5, "0800":1} and {"0000":1.25, "0800":1, "1800":1.20} returns {"0000":2.5, "0800":1, "1800":1.20} ---DAY AFTER PUBLIC HOLIDAY IS WEEKDAY E.G
 # E.g. {"0000":2.5, "0800":1} and {"0000":1.75} returns {"0000":2.5, "0800":1.75} ---DAY-AFTER-PH IS SUNDAY E.G
-def blendRatesDicts(first, second, debug=False):
+def blendRatesDicts(first, second, debug=True):
 	# Make a master set of checkpoints
 	t = list(first.keys())
 	t.extend(list(second.keys()))
@@ -444,7 +446,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 		print("rangeUPPER: " + datetime.strftime(rangeUpper,"%d-%m-%Y"))
 
 	# Using the start and end times of our roster, create all potential public holiday dates we could encounter.
-	PUBLIC_HOLIDAYS = generatePublicHolidays(createDateRangeYears(rangeLower, rangeUpper), stateVersion)
+	PUBLIC_HOLIDAYS = generatePublicHolidays(createDateRangeYears(rangeLower, rangeUpper), stateVersion, debug)
 
 	if baseHours > HOURS_BEFORE_OVERTIME:
 		overtimeHours = baseHours - HOURS_BEFORE_OVERTIME
@@ -462,6 +464,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 		print("DAYS WORKING: ")
 		print(daysWorking)
 
+	needsPHPenrateMade = [] # List of dates that require individual penalty rates made for them (as they are public holidays)
 	# ASSUMPTION - PENALTY_RATES_PH_GENERIC contains AT MOST two entries - 0 and 1
 	for date in daysWorking:
 		date = date.date()
@@ -471,12 +474,14 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 				print("------PH -------Already working")
 			P_H_COPY.pop(date) #So it won't be counted when scanning through this dict next.
 			# But still need to update the PH penalty rates dict as we know you'll be working. (see below where we do this again.)
-			makePenratePHEntry(date)
+			# makePenratePHEntry(date)
+			needsPHPenrateMade.append(date)
 		# MAKE A PEN_RATE_PH ENTRY only.
 		elif (date - timedelta(days=1)) in PUBLIC_HOLIDAYS: #If working the day _AFTER_ a PH, need to have that PEN_RATE_PH entry in the dict, but don't want it to be removed from P_H_COPY otherwise it won't be recognised as an observed PH in the next step
 			if debug:
 				print("------PH -------Working Day after, making PEN_RATE entry only")
-			makePenratePHEntry(date-timedelta(days=1))
+			# makePenratePHEntry(date-timedelta(days=1))
+			needsPHPenrateMade.append(date-timedelta(days=1))
 	if debug:
 		print("PUBLIC HOLIDAYS MODIFIED:")
 		print(P_H_COPY)
@@ -494,7 +499,14 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 			# Because we know we will be calculating rates on this day, generate an entry for PENALTY_RATES_PH
 			# Remembering that the keys in this dict are the offsets from the PH day, with units being days.
 			# This will overwrite any second-days that may have already been placed (e.g. in the case of christmas day and boxing day) but this IS CORRECT.
-			makePenratePHEntry(PH)
+			# makePenratePHEntry(PH)
+			needsPHPenrateMade.append(PH)
+
+	needsPHPenrateMade = list(set(needsPHPenrateMade)) #uniquify
+	needsPHPenrateMade.sort()
+	print(f"To make penrates for: {needsPHPenrateMade}")
+	for givenDate in needsPHPenrateMade: # Recording them and then making penrates all at once in chronological order ensures the "day-after" penalty rates are recorded correctly and not overwriting actual public holidays.
+		makePenratePHEntry(givenDate)
 
 	if debug:
 		print("PENALTY RATES PUBLIC HOLIDAY")
@@ -613,6 +625,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 							# If it does occur, the rate will have already been set by the loop the previous time (see the most outer else:)
 						if not (testRate is None):
 							rate = testRate
+							desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 
 					pensList.append({"rate":rate, "hours":hrs, "desc":desc})
 					#We need not iterate further, as we have reached endshifttime.
@@ -652,6 +665,7 @@ def analyseRoster(rosterDict, wageBaseRate, usualHours, stateVersion, debug=True
 							# If it does occur, the rate will have already been set by the loop the previous time (see the most outer else:)
 						if not (testRate is None):
 							rate = testRate
+							desc = DESCRIPTORS_SHIFTS_ALL[str(rate)]
 					pensList.append({"rate":rate, "hours":hrs, "desc":desc})
 					# Prepare to move the anchor onwards sailor.
 					anchorBack = anchorFront	

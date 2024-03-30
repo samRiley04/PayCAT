@@ -387,7 +387,7 @@ class settings(Resource):
 				shlf["WAGE_BASE_RATE"] = float(parsed_args["wage-base-rate"])
 			else:
 				wrong.update({"Wage base rate":parsed_args["wage-base-rate"]})
-			if not (parsed_args["usual-hours"] is None) and parsed_args["usual-hours"].isnumeric():
+			if not (parsed_args["usual-hours"] is None) and parsed_args["usual-hours"].replace(".","").isnumeric():
 				shlf["USUAL_HOURS"] = float(parsed_args["usual-hours"])
 			else:
 				wrong.update({"Usual hours":parsed_args["usual-hours"]})

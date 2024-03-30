@@ -898,8 +898,8 @@ function submitSettings(modalID) {
       $("#"+modalID).find("#wage-base-rate-invalidDP").removeAttr("hidden")
       abort = true
     }
-    let checkREdigitsonly = /^(\d+(\.0+)?)$/
-    let checkREuslhrs = /(^[2-9](\.0+)?$)|(^1[0-9](\.0+)?$)|(^2[0-4](\.0+)?$)/ //Accepts numbers 2 to 24 +/- ending in .00
+    let checkREdigitsonly = /^(\d+(\.\d+)?)$/
+    let checkREuslhrs = /(^[2-9](\.\d{1,4})?$)|(^1[0-9](\.\d{1,4})?$)|(^2[0-4](\.\d{1,4})?$)/ //Accepts numbers 2 to 24 +/- a decimal component up to 4 d.p. (arbitrary pick)
     let checkREendwithdec = /\.0+$/
     // Validate Usual Hours input field.
     if (!checkREdigitsonly.test(usualhours)) {
